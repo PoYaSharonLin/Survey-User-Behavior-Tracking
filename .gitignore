@@ -1,0 +1,26 @@
+# Compiled frontend
+dist/
+
+# Ruby
+.bundle/
+vendor/bundle
+*.gem
+*.rbc
+
+# Database files (SQLite for dev/test)
+backend_app/db/store/*.db
+
+# Secrets — NEVER commit these
+backend_app/config/secrets.yml
+frontend_app/.env.local
+
+# Node
+node_modules/
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
