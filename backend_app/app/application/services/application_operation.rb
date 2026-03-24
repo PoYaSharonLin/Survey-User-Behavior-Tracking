@@ -1,12 +1,14 @@
 # frozen_string_literal: true
 
-require 'dry/operation'
+require 'dry/monads'
 require_relative '../responses/api_result'
 
 module SurveyTracker
   module Service
-    # Base class for all service operations
-    class ApplicationOperation < Dry::Operation
+    # Base class for all service operations — uses plain monads (no step DSL needed)
+    class ApplicationOperation
+      include Dry::Monads[:result]
+
       private
 
       def ok(message) = Response::ApiResult.new(status: :ok, message:)

@@ -1,14 +1,11 @@
 # frozen_string_literal: true
 
-require 'dry/monads'
-
 module SurveyTracker
   module Service
     module SurveySessions
       # Creates a new survey session for the given user_id, or returns existing one.
       # Idempotent: calling with the same user_id always yields the same session.
       class CreateSession < ApplicationOperation
-        include Dry::Monads[:result]
 
         def call(user_id:, original_url: nil, metadata: nil)
           return Failure(bad_request('user_id is required')) if user_id.nil? || user_id.strip.empty?

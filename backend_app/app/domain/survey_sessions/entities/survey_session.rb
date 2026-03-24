@@ -11,11 +11,11 @@ module SurveyTracker
         attribute :id,           SurveyTracker::Types::Integer.optional.meta(omittable: true)
         attribute :user_id,      SurveyTracker::Types::String
         attribute :original_url, SurveyTracker::Types::String.optional.meta(omittable: true)
-        attribute :started_at,   SurveyTracker::Types::DateTime
-        attribute :ended_at,     SurveyTracker::Types::DateTime.optional.meta(omittable: true)
+        attribute :started_at,   SurveyTracker::Types::FlexibleDateTime
+        attribute :ended_at,     SurveyTracker::Types::FlexibleDateTime.optional.meta(omittable: true)
         attribute :metadata,     SurveyTracker::Types::String.optional.meta(omittable: true)
-        attribute :created_at,   SurveyTracker::Types::DateTime.optional.meta(omittable: true)
-        attribute :updated_at,   SurveyTracker::Types::DateTime.optional.meta(omittable: true)
+        attribute :created_at,   SurveyTracker::Types::FlexibleDateTime.optional.meta(omittable: true)
+        attribute :updated_at,   SurveyTracker::Types::FlexibleDateTime.optional.meta(omittable: true)
       end
     end
   end

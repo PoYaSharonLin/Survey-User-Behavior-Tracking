@@ -16,5 +16,9 @@ module SurveyTracker
     BehaviorEventType = Types::String.enum(
       'mousemove', 'click', 'highlight', 'hover', 'scroll', 'slider'
     )
+
+    # Flexible datetime that accepts Ruby Time objects (returned by SQLite/Sequel)
+    # or DateTime objects — strict Types::DateTime only accepts DateTime, not Time
+    FlexibleDateTime = Types.Instance(::Time) | Types.Instance(::DateTime)
   end
 end

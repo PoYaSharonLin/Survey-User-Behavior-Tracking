@@ -1,13 +1,10 @@
 # frozen_string_literal: true
 
-require 'dry/monads'
-
 module SurveyTracker
   module Service
     module BehaviorEvents
       # Lists all behavior events for a given user_id's session
       class ListEvents < ApplicationOperation
-        include Dry::Monads[:result]
 
         def call(user_id:, limit: 5000)
           session_record = Database::Repository::SurveySessions.new.find_by_user_id(user_id)

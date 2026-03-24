@@ -4,87 +4,34 @@
       <div class="survey-page">
         <!-- Header -->
         <header class="survey-header">
-          <h1 class="survey-title">Survey</h1>
-          <p class="survey-subtitle" v-if="userId">
-            Your session ID: <code class="uid-tag">{{ userId }}</code>
-          </p>
-          <p class="survey-subtitle warning" v-else>
-            ⚠ No user ID found. Please access this page via the link provided to you.
+          <h1 class="survey-title">飲食行為問卷</h1>
+          <p class="survey-subtitle warning" v-if="!userId">
+            ⚠ 未找到使用者 ID。請使用提供的連結進入此頁面。
           </p>
         </header>
 
         <!-- Survey body -->
         <main v-if="userId" class="survey-body">
-          <!-- Q1: Satisfaction slider -->
-          <section class="survey-section" data-track="q1-satisfaction">
-            <h2 class="question-label">
-              1. How satisfied are you with the product overall?
-            </h2>
-            <p class="scale-hint">
-              <span>Not at all satisfied</span>
-              <span>Extremely satisfied</span>
-            </p>
-            <SliderBar
-              v-model="answers.satisfaction"
-              :min="1"
-              :max="10"
-              :step="1"
-              minLabel="1"
-              maxLabel="10"
-            />
+          <section class="intro-section">
+            <h2>過去一週的飲食回報</h2>
+            <p>請根據您對以下敘述的同意程度，使用滑桿作答（1 為最低，7 為最高）。</p>
           </section>
 
-          <!-- Q2: Ease of use slider -->
-          <section class="survey-section" data-track="q2-ease">
-            <h2 class="question-label">
-              2. How easy was it to use the product?
-            </h2>
-            <p class="scale-hint">
-              <span>Very difficult</span>
-              <span>Very easy</span>
-            </p>
-            <SliderBar
-              v-model="answers.easeOfUse"
-              :min="1"
-              :max="10"
-              :step="1"
-              minLabel="1"
-              maxLabel="10"
-            />
-          </section>
-
-          <!-- Q3: Recommendation slider -->
-          <section class="survey-section" data-track="q3-recommend">
-            <h2 class="question-label">
-              3. How likely are you to recommend this product to a friend?
-            </h2>
-            <p class="scale-hint">
-              <span>Not likely</span>
-              <span>Very likely</span>
-            </p>
-            <SliderBar
-              v-model="answers.recommend"
-              :min="0"
-              :max="10"
-              :step="1"
-              minLabel="0 (Not at all)"
-              maxLabel="10 (Definitely)"
-            />
-          </section>
-
-          <!-- Q4: Open feedback (hoverable) -->
-          <section class="survey-section" data-track="q4-feedback">
-            <h2 class="question-label">
-              4. Any additional feedback? <span class="optional">(Optional)</span>
-            </h2>
-            <textarea
-              v-model="answers.feedback"
-              class="feedback-textarea"
-              placeholder="Type your thoughts here…"
-              rows="4"
-              data-track="feedback-textarea"
-            />
-          </section>
+          <div v-for="(q, index) in questions" :key="index" class="survey-section" :data-track="'q' + (index + 1)">
+            <label class="question-label">({{ index + 1 }}) {{ q.text }} *</label>
+            <!-- Slider Container -->
+            <div class="slider-container">
+              <SliderBar
+                v-model="answers.dietary[index]"
+                :question-index="index"
+                :min="1"
+                :max="7"
+                :step="1"
+                :minLabel="q.minLabel"
+                :maxLabel="q.maxLabel"
+              />
+            </div>
+          </div>
 
           <!-- Submit -->
           <div class="submit-row">
@@ -94,25 +41,14 @@
               :disabled="submitted"
               @click="submit"
             >
-              {{ submitted ? '✓ Submitted — Thank you!' : 'Submit Survey' }}
+              {{ submitted ? '✓ 已提交 — 謝謝您的參與！' : '提交問卷' }}
             </button>
-          </div>
-
-          <!-- Share URL panel (for other apps / researchers) -->
-          <div v-if="shareUrl" class="share-panel" data-track="share-panel">
-            <p class="share-label">Session link (copy for reference):</p>
-            <div class="share-url-row">
-              <code class="share-url-text">{{ shareUrl }}</code>
-              <button class="copy-btn" @click="copyShareUrl">
-                {{ copied ? 'Copied!' : 'Copy' }}
-              </button>
-            </div>
           </div>
         </main>
 
         <!-- No UID state -->
         <div v-else class="no-uid-notice">
-          <p>Please open the link you received with a <code>?uid=…</code> parameter.</p>
+          <p>請重新開啟包含 <code>?uid=…</code> 參數的連結。</p>
         </div>
       </div>
     </BehaviorTracker>
@@ -132,46 +68,47 @@ export default {
   data() {
     return {
       userId:    null,
-      shareUrl:  null,
       submitted: false,
-      copied:    false,
+      questions: [
+        { text: '過去一週你有規律地吃三餐嗎？', minLabel: '我這七天從未規律地吃三餐', maxLabel: '我這七天都規律地吃三餐' },
+        { text: '過去一週你有吃糖果或是零食嗎？', minLabel: '我這七天都有吃糖果或零食', maxLabel: '我這七天從未吃糖果或零食' },
+        { text: '過去一週你有充分咀嚼食物，每一口至少咀嚼二十次後才吞嚥嗎？', minLabel: '我這七天從未充分咀嚼食物就吞嚥', maxLabel: '我這七天每一口都至少咀嚼二十次' },
+        { text: '過去一週在口渴或炎熱時，你除了喝白開水外，有喝不健康飲品嗎(含糖或含酒精)?', minLabel: '我這七天都有喝不健康的飲品', maxLabel: '我這七天都只喝白開水' },
+        { text: '過去一週你有吃油炸或油膩的食物（如花生、薯片、炸雞等）嗎？', minLabel: '我這七天都吃油炸的食物', maxLabel: '我這七天從未吃油炸的食物' },
+        { text: '過去一週你每天都有吃水果嗎？', minLabel: '我這七天從未吃水果', maxLabel: '我這七天都有吃水果' },
+        { text: '過去一週你每天都有吃綠色蔬菜嗎？', minLabel: '我這七天從未吃綠色蔬菜', maxLabel: '我這七天都有吃綠色蔬菜' },
+        { text: '過去一週你每天都有吃宵夜嗎?', minLabel: '我這七天都有吃宵夜', maxLabel: '我這七天從未吃宵夜' },
+        { text: '過去一週你有一邊看電視或用平板、手機、電腦一邊吃東西嗎？', minLabel: '我這七天吃東西時都會分心', maxLabel: '我這七天都會專心吃東西' },
+        { text: '過去一週你心情不好時，會透過吃東西讓心情變好嗎？', minLabel: '我這七天都會透過吃東西讓心情變好', maxLabel: '我這七天從未透過吃東西讓心情變好' },
+        { text: '過去一週你會把吃東西當作獎勵自己或是慶祝的方式嗎？', minLabel: '我這七天都用吃東西獎勵自己', maxLabel: '我這七天從未用吃東西獎勵自己' },
+        { text: '過去一週你會在非常飢餓的時候，才去賣場採購食物嗎？', minLabel: '我這七天都等到非常餓才採購食物', maxLabel: '我這七天從未等到非常餓才採購食物' },
+      ],
       answers: {
-        satisfaction: 5,
-        easeOfUse:    5,
-        recommend:    5,
-        feedback:     '',
+        dietary: Array(12).fill(1),
       },
     };
   },
 
   async created() {
-    // Initialise session (reads ?uid= from URL, registers with backend)
     this.userId   = await session.init();
-    this.shareUrl = session.getShareUrl();
   },
 
   methods: {
     async submit() {
-      // Simple client-side guard
       if (this.submitted) return;
       this.submitted = true;
 
-      // Optionally mark session as ended
       try {
         await import('axios').then(({ default: axios }) =>
           axios.post('/api/survey/session', {
             user_id: this.userId,
-            metadata: { answers: this.answers, submitted_at: new Date().toISOString() },
+            metadata: {
+              answers: this.answers.dietary,
+              submitted_at: new Date().toISOString()
+            },
           })
         );
       } catch (_) { /* non-fatal */ }
-    },
-
-    copyShareUrl() {
-      navigator.clipboard.writeText(this.shareUrl).then(() => {
-        this.copied = true;
-        setTimeout(() => { this.copied = false; }, 2000);
-      });
     },
   },
 };
@@ -184,17 +121,20 @@ export default {
 
 .survey-wrapper {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f0f4ff 0%, #faf0ff 100%);
+  width: 100%;
+  background: #f4f7f6;
   display: flex;
-  justify-content: center;
-  align-items: flex-start;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
   padding: 48px 16px 80px;
   font-family: 'Inter', sans-serif;
 }
 
 .survey-page {
   width: 100%;
-  max-width: 680px;
+  max-width: 800px;
+  margin: 0 auto;
   background: #fff;
   border-radius: 20px;
   box-shadow: 0 8px 48px rgba(108, 99, 255, 0.12);
@@ -203,13 +143,14 @@ export default {
 
 /* ── Header ──────────────────────────────────────────────── */
 .survey-header {
-  background: linear-gradient(135deg, #6c63ff 0%, #48cae4 100%);
+  background: #6c63ff;
   padding: 40px 40px 32px;
   color: #fff;
+  text-align: center;
 }
 
 .survey-title {
-  font-size: 2.2rem;
+  font-size: 1.8rem;
   font-weight: 900;
   margin: 0 0 8px;
   letter-spacing: -0.5px;
@@ -235,31 +176,53 @@ export default {
   padding: 40px;
 }
 
-.survey-section {
-  margin-bottom: 40px;
-  padding: 28px;
-  border: 1.5px solid #ede8ff;
-  border-radius: 14px;
-  transition: box-shadow 0.2s;
+.intro-section {
+  margin-bottom: 32px;
+  text-align: center;
 }
 
-.survey-section:hover {
-  box-shadow: 0 4px 20px rgba(108, 99, 255, 0.1);
+.intro-section h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 12px;
+}
+
+.intro-section p {
+  color: #666;
+  line-height: 1.6;
+}
+
+.survey-section {
+  margin-bottom: 32px;
+  padding: 24px;
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+  background: #fafafa;
 }
 
 .question-label {
-  font-size: 1.05rem;
+  display: block;
+  font-size: 1rem;
   font-weight: 600;
   color: #333;
-  margin: 0 0 16px;
+  margin-bottom: 20px;
+  line-height: 1.5;
 }
 
-.scale-hint {
+.question-container {
   display: flex;
-  justify-content: space-between;
-  font-size: 0.78rem;
-  color: #aaa;
-  margin-bottom: 10px;
+  align-items: flex-start;
+  gap: 1.5rem;
+}
+
+.progress-svg {
+  flex-shrink: 0;
+  margin-top: 0.5rem;
+}
+
+.slider-container {
+  flex: 1;
 }
 
 .optional {
@@ -274,7 +237,7 @@ export default {
   border-radius: 10px;
   padding: 14px;
   font-size: 0.95rem;
-  font-family: 'Inter', sans-serif;
+  font-family: inherit;
   resize: vertical;
   transition: border-color 0.2s;
   outline: none;
@@ -289,83 +252,35 @@ export default {
 /* ── Submit ─────────────────────────────────────────────── */
 .submit-row {
   text-align: center;
+  margin-top: 48px;
   margin-bottom: 32px;
 }
 
 .submit-btn {
-  background: linear-gradient(135deg, #6c63ff, #48cae4);
-  color: #fff;
-  border: none;
-  border-radius: 50px;
-  padding: 14px 48px;
-  font-size: 1rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s, opacity 0.2s;
-  letter-spacing: 0.5px;
-}
-
-.submit-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(108, 99, 255, 0.35);
-}
-
-.submit-btn:disabled {
-  opacity: 0.7;
-  cursor: default;
-}
-
-/* ── Share panel ─────────────────────────────────────────── */
-.share-panel {
-  margin-top: 8px;
-  padding: 20px;
-  background: #f8f7ff;
-  border-radius: 12px;
-  border: 1.5px solid #ede8ff;
-}
-
-.share-label {
-  font-size: 0.8rem;
-  color: #888;
-  margin: 0 0 8px;
-}
-
-.share-url-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.share-url-text {
-  flex: 1;
-  font-size: 0.82rem;
-  color: #6c63ff;
-  word-break: break-all;
-  background: #fff;
-  padding: 6px 10px;
-  border-radius: 6px;
-  border: 1px solid #ddd;
-}
-
-.copy-btn {
   background: #6c63ff;
   color: #fff;
   border: none;
-  border-radius: 8px;
-  padding: 8px 16px;
-  font-size: 0.82rem;
-  font-weight: 600;
+  border-radius: 50px;
+  padding: 16px 64px;
+  font-size: 1.1rem;
+  font-weight: 700;
   cursor: pointer;
-  white-space: nowrap;
-  transition: background 0.2s;
+  transition: transform 0.15s, box-shadow 0.15s, background-color 0.2s;
 }
 
-.copy-btn:hover { background: #5a52e0; }
+.submit-btn:hover:not(:disabled) {
+  background-color: #5a52e0; /* Slightly darker indigo */
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(108, 99, 255, 0.35);
+}
 
-/* ── No UID notice ───────────────────────────────────────── */
+.submit-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 .no-uid-notice {
-  padding: 40px;
+  padding: 80px 40px;
   text-align: center;
   color: #888;
 }

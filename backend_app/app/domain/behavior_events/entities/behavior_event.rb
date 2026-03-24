@@ -15,9 +15,9 @@ module SurveyTracker
         attribute :y,                 SurveyTracker::Types::Integer.optional.meta(omittable: true)
         attribute :element_selector,  SurveyTracker::Types::String.optional.meta(omittable: true)
         attribute :text_content,      SurveyTracker::Types::String.optional.meta(omittable: true)
-        attribute :timestamp,         SurveyTracker::Types::DateTime
+        attribute :timestamp,         SurveyTracker::Types::FlexibleDateTime
         attribute :extra,             SurveyTracker::Types::String.optional.meta(omittable: true)
-        attribute :created_at,        SurveyTracker::Types::DateTime.optional.meta(omittable: true)
+        attribute :created_at,        SurveyTracker::Types::FlexibleDateTime.optional.meta(omittable: true)
       end
     end
   end

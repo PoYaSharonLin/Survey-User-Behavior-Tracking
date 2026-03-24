@@ -1,14 +1,11 @@
 # frozen_string_literal: true
 
-require 'dry/monads'
-
 module SurveyTracker
   module Service
     module BehaviorEvents
       # Records one or many behavior events for a given user_id's session.
       # Accepts a batch (array) for efficiency with high-frequency mousemove events.
       class RecordEvents < ApplicationOperation
-        include Dry::Monads[:result]
 
         VALID_EVENT_TYPES = %w[mousemove click highlight hover scroll slider].freeze
 

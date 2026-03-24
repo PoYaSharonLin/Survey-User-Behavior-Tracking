@@ -1,13 +1,10 @@
 # frozen_string_literal: true
 
-require 'dry/monads'
-
 module SurveyTracker
   module Service
     module SurveySessions
       # Retrieves an existing survey session by user_id
       class GetSession < ApplicationOperation
-        include Dry::Monads[:result]
 
         def call(user_id:)
           record = Database::Repository::SurveySessions.new.find_by_user_id(user_id)
