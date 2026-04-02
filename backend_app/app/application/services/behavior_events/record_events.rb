@@ -3,32 +3,33 @@
 module SurveyTracker
   module Service
     module BehaviorEvents
-      # Records one or many behavior events for a given user_id's session.
-      # Accepts a batch (array) for efficiency with high-frequency mousemove events.
+      # Records one or many trajectories for a given user_id's session.
       class RecordEvents < ApplicationOperation
 
-        VALID_EVENT_TYPES = %w[mousemove click highlight hover scroll slider].freeze
+        VALID_TRAJECTORY_TYPES = %w[MM PC HL HV SC SL].freeze
 
-        def call(user_id:, events:)
-          return Failure(bad_request('events must be an array')) unless events.is_a?(Array)
-          return Failure(bad_request('events array is empty')) if events.empty?
+        def call(user_id:, trajectories:)
+          return Failure(bad_request('trajectories must be an array')) unless trajectories.is_a?(Array)
+          return Failure(bad_request('trajectories array is empty'))   if trajectories.empty?
 
           session_record = Database::Repository::SurveySessions.new.find_by_user_id(user_id)
           return Failure(not_found("No session for user_id: #{user_id}")) unless session_record
 
-          # Validate and normalise event types
-          events.each do |evt|
-            unless VALID_EVENT_TYPES.include?(evt[:event_type])
-              return Failure(bad_request("Invalid event_type: #{evt[:event_type]}"))
+          trajectories.each do |traj|
+            unless VALID_TRAJECTORY_TYPES.include?(traj[:type])
+              return Failure(bad_request("Invalid trajectory type: #{traj[:type]}"))
+            end
+            unless traj[:events].is_a?(Array)
+              return Failure(bad_request("events must be an array for trajectory type: #{traj[:type]}"))
             end
           end
 
           Database::Repository::BehaviorEvents.new.create_batch(
             survey_session_id: session_record.id,
-            events:
+            trajectories:
           )
 
-          Success(created("#{events.size} event(s) recorded"))
+          Success(created("#{trajectories.size} trajectory(s) recorded"))
         rescue StandardError => e
           Failure(internal_error(e.message))
         end

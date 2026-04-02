@@ -36,8 +36,10 @@ const session = {
         user_id:      userId,
         original_url: localStorage.getItem(ORIG_URL_KEY) || window.location.href,
         metadata: {
-          user_agent: navigator.userAgent,
-          referrer:   document.referrer,
+          user_agent:      navigator.userAgent,
+          referrer:        document.referrer,
+          viewport_width:  window.innerWidth,
+          viewport_height: window.innerHeight,
         },
       });
 

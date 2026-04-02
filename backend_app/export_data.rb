@@ -25,46 +25,36 @@ begin
   puts "✅ Found session ID: #{session.id}"
   puts "📊 Metadata: #{session.metadata}"
 
-  # 2. Get behavior events
-  events = SurveyTracker::Api.db[:behavior_events]
-            .where(survey_session_id: session.id)
-            .order(:timestamp)
-            .all
+  # 2. Get trajectories
+  trajectories = SurveyTracker::Api.db[:trajectories]
+                  .where(survey_session_id: session.id)
+                  .order(:created_at)
+                  .all
 
-  puts "📈 Found #{events.count} behavior events."
+  puts "📈 Found #{trajectories.count} trajectories."
 
-  if events.empty?
-    puts "⚠️ No events recorded for this session."
+  if trajectories.empty?
+    puts "⚠️ No trajectories recorded for this session."
     exit 0
   end
 
-  # 3. Export to CSV
+  # 3. Export to CSV (one row per inner event, flattened from trajectories)
   CSV.open(OUTPUT_FILE, "wb") do |csv|
-    # Header row
-    csv << [
-      "ID", "Event Type", "X", "Y", "Selector", 
-      "Content", "Timestamp", "Created At"
-    ]
-    
-    events.each do |e|
-      csv << [
-        e[:id],
-        e[:event_type],
-        e[:x],
-        e[:y],
-        e[:element_selector],
-        e[:text_content],
-        e[:timestamp],
-        e[:created_at]
-      ]
+    csv << ["Trajectory ID", "Type", "Event Index", "x", "y", "Event Name", "Timestamp (ms)", "Extra...", "Created At"]
+
+    trajectories.each do |traj|
+      events = JSON.parse(traj[:events]) rescue []
+      events.each_with_index do |evt, idx|
+        csv << [traj[:id], traj[:trajectory_type], idx, *evt, traj[:created_at]]
+      end
     end
   end
 
   puts "🚀 Successfully exported data to: #{OUTPUT_FILE}"
-  puts "   (First 5 records printed below:)"
+  puts "   (First 5 trajectories printed below:)"
   puts "-" * 40
-  events.first(5).each do |e|
-    puts "[#{e[:timestamp]}] #{e[:event_type].ljust(10)} | x: #{e[:x].to_s.ljust(4)} y: #{e[:y].to_s.ljust(4)} | #{e[:element_selector]}"
+  trajectories.first(5).each do |t|
+    puts "[#{t[:created_at]}] #{t[:trajectory_type].ljust(3)} | #{t[:events][0..80]}"
   end
   puts "-" * 40
 

@@ -24,6 +24,14 @@ describe 'Behavior Routes' do
           event_type: 'click',
           element_selector: '#submit-btn',
           timestamp: Time.now.utc.iso8601
+        },
+        {
+          event_type: 'slider',
+          element_selector: '.native-slider-1',
+          x: 450,
+          y: 350,
+          timestamp: Time.now.utc.iso8601,
+          extra: { value: 5 }.to_json
         }
       ]
     }
@@ -33,7 +41,7 @@ describe 'Behavior Routes' do
 
     _(last_response.status).must_equal 201
     _(json_response[:success]).must_equal true
-    _(json_response[:message]).must_match(/2 event\(s\) recorded/)
+    _(json_response[:message]).must_match(/3 event\(s\) recorded/)
   end
 
   it 'should list events for a session' do

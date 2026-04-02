@@ -29,7 +29,20 @@
                 :step="1"
                 :minLabel="q.minLabel"
                 :maxLabel="q.maxLabel"
+                :finished="confirmedQuestions[index]"
               />
+            </div>
+            <!-- Confirm Button (Icon only) -->
+            <div class="confirm-container">
+              <button
+                class="confirm-btn"
+                :class="{ confirmed: confirmedQuestions[index] }"
+                @click="toggleConfirm(index)"
+                :data-track="'confirm-q' + (index + 1)"
+                :title="confirmedQuestions[index] ? '已確認' : '確認答案'"
+              >
+                <span class="icon">✓</span>
+              </button>
             </div>
           </div>
 
@@ -59,6 +72,7 @@
 import BehaviorTracker from '@/components/BehaviorTracker.vue';
 import SliderBar       from '@/components/SliderBar.vue';
 import session         from '@/lib/session';
+import tracker         from '@/lib/tracker';
 
 export default {
   name: 'SurveyPage',
@@ -86,6 +100,7 @@ export default {
       answers: {
         dietary: Array(12).fill(1),
       },
+      confirmedQuestions: Array(12).fill(false),
     };
   },
 
@@ -98,6 +113,7 @@ export default {
       if (this.submitted) return;
       this.submitted = true;
 
+      // 1. Save survey answers to session metadata
       try {
         await import('axios').then(({ default: axios }) =>
           axios.post('/api/survey/session', {
@@ -109,6 +125,29 @@ export default {
           })
         );
       } catch (_) { /* non-fatal */ }
+
+      // 2. Upload full behavior history as binary blob to S3
+      // Use fetch (not axios) — fetch has well-defined ArrayBuffer body support
+      try {
+        const buffer = tracker.getBinaryBlob();
+        const res = await fetch(
+          `/api/behavior/${encodeURIComponent(this.userId)}/upload`,
+          {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/octet-stream' },
+            body:    buffer,
+          }
+        );
+        if (!res.ok) {
+          const text = await res.text();
+          console.error('[submit] S3 upload failed:', res.status, text);
+        }
+      } catch (err) {
+        console.error('[submit] S3 upload error:', err);
+      }
+    },
+    toggleConfirm(index) {
+      this.confirmedQuestions[index] = !this.confirmedQuestions[index];
     },
   },
 };
@@ -247,6 +286,42 @@ export default {
 .feedback-textarea:focus {
   border-color: #6c63ff;
   box-shadow: 0 0 0 3px rgba(108,99,255,0.15);
+}
+
+/* ── Confirm Button ── */
+.confirm-container {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.confirm-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: #fff;
+  color: #6c63ff;
+  border: 1.5px solid #6c63ff;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.confirm-btn:hover {
+  background: #f0f0ff;
+}
+
+.confirm-btn.confirmed {
+  background: #4caf50;
+  color: #fff;
+  border-color: #4caf50;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.confirm-btn .icon {
+  font-size: 1.1rem;
 }
 
 /* ── Submit ─────────────────────────────────────────────── */

@@ -6,17 +6,13 @@ require_relative '../../types'
 module SurveyTracker
   module Domain
     module BehaviorEvents
-      # Immutable domain entity representing a single tracked user behavior event
-      class BehaviorEvent < Dry::Struct
+      # Immutable domain entity representing a single trajectory
+      # (a grouped sequence of raw input events of the same type).
+      class Trajectory < Dry::Struct
         attribute :id,                SurveyTracker::Types::Integer.optional.meta(omittable: true)
         attribute :survey_session_id, SurveyTracker::Types::Integer
-        attribute :event_type,        SurveyTracker::Types::String
-        attribute :x,                 SurveyTracker::Types::Integer.optional.meta(omittable: true)
-        attribute :y,                 SurveyTracker::Types::Integer.optional.meta(omittable: true)
-        attribute :element_selector,  SurveyTracker::Types::String.optional.meta(omittable: true)
-        attribute :text_content,      SurveyTracker::Types::String.optional.meta(omittable: true)
-        attribute :timestamp,         SurveyTracker::Types::FlexibleDateTime
-        attribute :extra,             SurveyTracker::Types::String.optional.meta(omittable: true)
+        attribute :trajectory_type,   SurveyTracker::Types::String   # MM | PC | HL | HV | SC | SL
+        attribute :events,            SurveyTracker::Types::String   # JSON text: [[x,y,type,ts,...],...]
         attribute :created_at,        SurveyTracker::Types::FlexibleDateTime.optional.meta(omittable: true)
       end
     end

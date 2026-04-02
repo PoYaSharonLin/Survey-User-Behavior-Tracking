@@ -32,6 +32,7 @@ gem 'roar', '~>1.2'
 # INFRASTRUCTURE
 gem 'foreman', '~>0.0'
 gem 'rake', '~>13.0'
+gem 'aws-sdk-s3'
 
 # DATABASE
 gem 'sequel', '~>5.0'

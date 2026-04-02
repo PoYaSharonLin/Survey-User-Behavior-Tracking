@@ -13,10 +13,7 @@
         :disabled="finished"
       >
     </div>
-    <div class="slider-ticks">
-      <span>1</span>
-      <span>7</span>
-    </div>
+    <!-- Removed ticks as per request 5 -->
     <div class="slider-labels">
       <span class="label-min">{{ minLabel }}</span>
       <span class="label-max">{{ maxLabel }}</span>
@@ -31,13 +28,14 @@ export default {
   name: 'SliderBar',
 
   props: {
-    modelValue: { type: Number, default: 4 },
-    min:        { type: Number, default: 1 },
-    max:        { type: Number, default: 7 },
-    step:       { type: Number, default: 1 },
+    modelValue:    { type: Number, default: 4 },
+    min:           { type: Number, default: 1 },
+    max:           { type: Number, default: 7 },
+    step:          { type: Number, default: 1 },
     minLabel:      { type: String, default: '' },
     maxLabel:      { type: String, default: '' },
     questionIndex: { type: Number, default: 0 },
+    finished:      { type: Boolean, default: false },
   },
 
   emits: ['update:modelValue', 'change'],
@@ -45,7 +43,6 @@ export default {
   data() {
     return {
       internalValue: this.modelValue,
-      finished:      false,
     };
   },
 
@@ -56,24 +53,27 @@ export default {
   },
 
   methods: {
-    onInput() {
+    onInput(e) {
       if (this.finished) return;
-      // Use the user-defined 30ms lag
+      // InputEvent has no clientX/Y; pointer-capture during range-drag blocks
+      // element-level listeners. Use the last position recorded by the global
+      // mousemove tracker (user must hover over slider before dragging it).
+      const { x, y } = tracker.getLastPosition();
+      const val = this.internalValue;
       setTimeout(() => {
-        this.emit(this.internalValue);
+        this.emit(val, x, y);
       }, 30);
     },
 
-    onFinish() {
-      if (this.finished) return;
-      this.finished = true;
-      this.emit(this.internalValue);
+    onFinish(e) {
+      const { x, y } = tracker.getLastPosition();
+      this.emit(this.internalValue, x, y);
     },
 
-    emit(val) {
+    emit(val, x = null, y = null) {
       this.$emit('update:modelValue', val);
       this.$emit('change', val);
-      tracker.recordSlider(val, `.native-slider-${this.questionIndex + 1}`);
+      tracker.recordSlider(val, `.native-slider-${this.questionIndex + 1}`, x, y);
     },
   },
 };

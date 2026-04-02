@@ -3,7 +3,7 @@
 module SurveyTracker
   module Service
     module BehaviorEvents
-      # Lists all behavior events for a given user_id's session
+      # Lists all trajectories for a given user_id's session
       class ListEvents < ApplicationOperation
 
         def call(user_id:, limit: 5000)
@@ -15,22 +15,17 @@ module SurveyTracker
             limit:
           )
 
-          events = records.map do |r|
-            Domain::BehaviorEvents::BehaviorEvent.new(
-              id:               r.id,
+          trajectories = records.map do |r|
+            Domain::BehaviorEvents::Trajectory.new(
+              id:                r.id,
               survey_session_id: r.survey_session_id,
-              event_type:       r.event_type,
-              x:                r.x,
-              y:                r.y,
-              element_selector: r.element_selector,
-              text_content:     r.text_content,
-              timestamp:        r.timestamp,
-              extra:            r.extra,
-              created_at:       r.created_at
+              trajectory_type:   r.trajectory_type,
+              events:            r.events,
+              created_at:        r.created_at,
             )
           end
 
-          Success(ok(events))
+          Success(ok(trajectories))
         rescue StandardError => e
           Failure(internal_error(e.message))
         end
