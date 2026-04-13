@@ -45,6 +45,7 @@ let pcState         = { down: null, up: null };  // mousedown/mouseup waiting fo
 let trajectoryQueue = [];               // completed trajectories pending flush to DB
 let fullHistory     = [];               // all completed trajectories (for binary export)
 let flushTimer      = null;
+let paused          = false;            // true while the page is hidden (visibility API)
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
@@ -65,6 +66,7 @@ function drainSC() {
 }
 
 async function flush() {
+  if (paused) return;
   drainMM();
   drainSC();
   if (!userId || trajectoryQueue.length === 0) return;
@@ -185,11 +187,29 @@ const onScroll = throttle(() => {
   if (scBuffer.length >= MAX_BUFFER) drainSC();
 }, FLUSH_INTERVAL);
 
+function onVisibilityChange() {
+  if (document.visibilityState === 'hidden') {
+    paused = true;
+    // Drain buffers so partial data is not lost when the tab comes back
+    drainMM();
+    drainSC();
+  } else {
+    paused = false;
+    lastScrollY   = window.scrollY;
+    lastRecordedX = null;
+    lastRecordedY = null;
+  }
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
 
 const tracker = {
   start(uid) {
     if (!uid) { console.warn('[tracker] No user ID — tracking disabled.'); return; }
+    if (userId) {
+      console.warn('[tracker] Already running — call stop() first.');
+      return;
+    }
     userId          = uid;
     mmBuffer        = [];
     scBuffer        = [];
@@ -200,6 +220,7 @@ const tracker = {
     lastRecordedY   = null;
     lastScrollY     = window.scrollY;
     hoverMap        = {};
+    paused          = document.visibilityState === 'hidden';
 
     document.addEventListener('mousemove',       onMouseMove);
     document.addEventListener('mousedown',       onMouseDown);
@@ -207,22 +228,25 @@ const tracker = {
     document.addEventListener('click',           onClick);
     document.addEventListener('selectionchange', onSelectionChange);
     document.addEventListener('scroll',          onScroll, { passive: true });
+    document.addEventListener('visibilitychange', onVisibilityChange);
 
     document.querySelectorAll('[data-track]').forEach(el => {
       el.addEventListener('mouseenter', onMouseEnter);
       el.addEventListener('mouseleave', onMouseLeave);
     });
 
+    clearInterval(flushTimer);
     flushTimer = setInterval(flush, FLUSH_INTERVAL);
   },
 
   async stop() {
-    document.removeEventListener('mousemove',       onMouseMove);
-    document.removeEventListener('mousedown',       onMouseDown);
-    document.removeEventListener('mouseup',         onMouseUp);
-    document.removeEventListener('click',           onClick);
-    document.removeEventListener('selectionchange', onSelectionChange);
-    document.removeEventListener('scroll',          onScroll);
+    document.removeEventListener('mousemove',        onMouseMove);
+    document.removeEventListener('mousedown',        onMouseDown);
+    document.removeEventListener('mouseup',          onMouseUp);
+    document.removeEventListener('click',            onClick);
+    document.removeEventListener('selectionchange',  onSelectionChange);
+    document.removeEventListener('scroll',           onScroll);
+    document.removeEventListener('visibilitychange', onVisibilityChange);
 
     document.querySelectorAll('[data-track]').forEach(el => {
       el.removeEventListener('mouseenter', onMouseEnter);

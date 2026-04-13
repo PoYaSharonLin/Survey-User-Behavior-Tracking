@@ -33,6 +33,7 @@ gem 'roar', '~>1.2'
 gem 'foreman', '~>0.0'
 gem 'rake', '~>13.0'
 gem 'aws-sdk-s3'
+gem 'rexml'          # XML parser required by aws-sdk-s3 for CORS / ACL operations
 
 # DATABASE
 gem 'sequel', '~>5.0'

@@ -29,6 +29,14 @@ module SurveyTracker
           session.update(ended_at: Time.now.utc)
           session
         end
+
+        def update_s3_key(user_id:, s3_key:)
+          session = find_by_user_id(user_id)
+          return nil unless session
+
+          session.update(s3_key:)
+          session
+        end
       end
     end
   end

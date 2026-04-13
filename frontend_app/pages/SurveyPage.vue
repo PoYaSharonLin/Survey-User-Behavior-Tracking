@@ -126,21 +126,66 @@ export default {
         );
       } catch (_) { /* non-fatal */ }
 
-      // 2. Upload full behavior history as binary blob to S3
-      // Use fetch (not axios) — fetch has well-defined ArrayBuffer body support
+      // 2. Upload binary blob directly to S3 via presigned URL.
+      //    The presigned URL is requested at submit time (not page load) so the
+      //    10-minute expiry is never a problem regardless of how long the survey took.
       try {
+        // Step A: get a short-lived presigned PUT URL from the backend
+        const presignRes = await fetch(
+          `/api/behavior/${encodeURIComponent(this.userId)}/presigned-url`
+        );
+        if (!presignRes.ok) {
+          console.error('[submit] presigned-url request failed:', presignRes.status);
+          return;
+        }
+        const { url, key, expires_at } = await presignRes.json();
+        console.log('[presigned-url] url:', url, '| key:', key, '| expires_at:', expires_at);
+
+        // Step B: PUT the binary blob directly to S3 — backend not involved
         const buffer = tracker.getBinaryBlob();
-        const res = await fetch(
-          `/api/behavior/${encodeURIComponent(this.userId)}/upload`,
+        const s3Res = await fetch(url, {
+          method:  'PUT',
+          headers: { 'Content-Type': 'application/octet-stream' },
+          body:    buffer,
+        });
+        if (!s3Res.ok) {
+          console.error('[submit] S3 PUT failed:', s3Res.status);
+          return;
+        }
+        console.log('[confirm-upload] Confirm upload from S3 ✓');
+
+        // Step C: tell the backend which key was stored so it can be retrieved later
+        const confirmRes = await fetch(
+          `/api/behavior/${encodeURIComponent(this.userId)}/confirm-upload`,
           {
             method:  'POST',
-            headers: { 'Content-Type': 'application/octet-stream' },
-            body:    buffer,
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ key }),
           }
         );
-        if (!res.ok) {
-          const text = await res.text();
-          console.error('[submit] S3 upload failed:', res.status, text);
+        if (confirmRes.ok) {
+          console.log('[confirm-upload] Confirm write-in in database ✓');
+        } else {
+          console.error('[confirm-upload] Database write failed:', confirmRes.status);
+        }
+
+        // Step D: verify the stored key is retrievable via a presigned GET URL
+        const downloadRes = await fetch(
+          `/api/behavior/${encodeURIComponent(this.userId)}/download-url`
+        );
+        if (!downloadRes.ok) {
+          console.error('[download-url] GET request failed:', downloadRes.status);
+          return;
+        }
+        const { url: downloadUrl, expires_at: downloadExpiresAt } = await downloadRes.json();
+        console.log('[download-url] Get request successful ✓ | url:', downloadUrl, '| expires_at:', downloadExpiresAt);
+
+        // Step E: probe the presigned GET URL to confirm the object is accessible
+        const dataRes = await fetch(downloadUrl, { method: 'GET' });
+        if (dataRes.ok || dataRes.status === 206) {
+          console.log('[download-url] Download data successfully ✓');
+        } else {
+          console.error('[download-url] Object fetch failed:', dataRes.status);
         }
       } catch (err) {
         console.error('[submit] S3 upload error:', err);

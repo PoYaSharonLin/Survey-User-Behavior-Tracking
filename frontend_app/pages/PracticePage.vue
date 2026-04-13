@@ -1,7 +1,6 @@
 <template>
   <div class="practice-wrapper">
-    <BehaviorTracker>
-      <div class="practice-page">
+    <div class="practice-page">
         <header class="practice-header">
           <h1 class="practice-title">滑桿操作練習</h1>
         </header>
@@ -59,19 +58,17 @@
         <div v-else class="no-uid-notice">
           <p>請重新開啟包含 <code>?uid=…</code> 參數的連結。</p>
         </div>
-      </div>
-    </BehaviorTracker>
+    </div>
   </div>
 </template>
 
 <script>
-import BehaviorTracker from '@/components/BehaviorTracker.vue';
-import SliderBar       from '@/components/SliderBar.vue';
-import session         from '@/lib/session';
+import SliderBar from '@/components/SliderBar.vue';
+import session   from '@/lib/session';
 
 export default {
   name: 'PracticePage',
-  components: { BehaviorTracker, SliderBar },
+  components: { SliderBar },
 
   data() {
     return {

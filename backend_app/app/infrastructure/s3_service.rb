@@ -40,20 +40,59 @@ module SurveyTracker
         { success: false, error: e.message }
       end
 
-      # Uploads a raw binary behavior blob to S3.
-      # The blob is produced by the frontend tracker and contains a SBEH header
-      # with the uid embedded, followed by a msgpack-encoded trajectory array.
-      def upload_binary(user_id, binary_data)
+      # Returns a presigned PUT URL for the frontend to upload a binary blob directly to S3.
+      # Expires in 10 minutes — generated on submit click so expiry is not a concern.
+      def presign_upload_url(user_id)
         key = "behavior_data/#{user_id}_#{Time.now.to_i}.bin"
-
-        @s3_client.put_object(
+        presigner = Aws::S3::Presigner.new(client: @s3_client)
+        url = presigner.presigned_url(
+          :put_object,
           bucket:       @bucket_name,
           key:          key,
-          body:         binary_data,
+          expires_in:   600,
           content_type: 'application/octet-stream'
         )
+        expires_at = (Time.now.utc + 600).iso8601
+        { success: true, url: url, key: key, expires_at: expires_at }
+      rescue StandardError => e
+        { success: false, error: e.message }
+      end
 
-        { success: true, key: key }
+      # Applies a CORS policy to the bucket so browsers can PUT objects via presigned URLs.
+      # Call once during setup: `bundle exec rake s3:configure_cors`
+      # allowed_origins: array of origins, e.g. ["http://localhost:8080", "https://example.com"]
+      def configure_bucket_cors(allowed_origins: ['*'])
+        @s3_client.put_bucket_cors(
+          bucket: @bucket_name,
+          cors_configuration: {
+            cors_rules: [
+              {
+                allowed_headers: ['*'],
+                allowed_methods: %w[PUT GET HEAD],
+                allowed_origins: allowed_origins,
+                expose_headers:  ['ETag'],
+                max_age_seconds: 3000
+              }
+            ]
+          }
+        )
+        { success: true }
+      rescue StandardError => e
+        { success: false, error: e.message }
+      end
+
+      # Returns a presigned GET URL so a researcher can download the object without AWS credentials.
+      # Default expiry: 1 hour.
+      def presign_download_url(s3_key, expires_in: 3600)
+        presigner = Aws::S3::Presigner.new(client: @s3_client)
+        url = presigner.presigned_url(
+          :get_object,
+          bucket:     @bucket_name,
+          key:        s3_key,
+          expires_in: expires_in
+        )
+        expires_at = (Time.now.utc + expires_in).iso8601
+        { success: true, url: url, expires_at: expires_at }
       rescue StandardError => e
         { success: false, error: e.message }
       end

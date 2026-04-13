@@ -134,6 +134,7 @@ GEM
       declarative (< 0.1.0)
       trailblazer-option (>= 0.1.1, < 0.2.0)
       uber (< 0.2.0)
+    rexml (3.4.4)
     roar (1.2.0)
       representable (~> 3.1)
     roda (3.102.0)
@@ -213,6 +214,7 @@ DEPENDENCIES
   rack-ssl-enforcer
   rack-test
   rake (~> 13.0)
+  rexml
   roar (~> 1.2)
   roda (~> 3.0)
   rubocop

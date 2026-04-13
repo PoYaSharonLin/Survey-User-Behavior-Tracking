@@ -81,14 +81,40 @@ namespace :db do
   task reset: %i[drop migrate]
 end
 
+namespace :s3 do
+  desc 'Configure CORS on the S3 bucket (run once during setup)'
+  task :configure_cors do
+    require_app('infrastructure')
+    origins = ENV.fetch('CORS_ORIGINS', 'http://localhost:8080').split(',').map(&:strip)
+    puts "==> Configuring CORS on S3 bucket for origins: #{origins.inspect}"
+    result = SurveyTracker::Infrastructure::S3Service.new.configure_bucket_cors(allowed_origins: origins)
+    if result[:success]
+      puts '==> CORS configured successfully.'
+    else
+      puts "==> CORS configuration failed: #{result[:error]}"
+      exit 1
+    end
+  end
+end
+
 namespace :run do
   desc 'Run backend API server for development'
   task :api do
+    pid = `lsof -ti :9292`.strip
+    unless pid.empty?
+      puts "==> Killing process on port 9292 (PID #{pid})..."
+      sh "kill -9 #{pid}"
+    end
     sh 'puma config.ru -t 1:5 -p 9292'
   end
 
   desc 'Run frontend webpack dev server'
   task :frontend do
+    pid = `lsof -ti :8080`.strip
+    unless pid.empty?
+      puts "==> Killing process on port 8080 (PID #{pid})..."
+      sh "kill -9 #{pid}"
+    end
     sh 'npm run dev'
   end
 end

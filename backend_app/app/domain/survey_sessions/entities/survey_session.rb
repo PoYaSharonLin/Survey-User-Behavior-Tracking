@@ -14,6 +14,7 @@ module SurveyTracker
         attribute :started_at,   SurveyTracker::Types::FlexibleDateTime
         attribute :ended_at,     SurveyTracker::Types::FlexibleDateTime.optional.meta(omittable: true)
         attribute :metadata,     SurveyTracker::Types::String.optional.meta(omittable: true)
+        attribute :s3_key,       SurveyTracker::Types::String.optional.meta(omittable: true)
         attribute :created_at,   SurveyTracker::Types::FlexibleDateTime.optional.meta(omittable: true)
         attribute :updated_at,   SurveyTracker::Types::FlexibleDateTime.optional.meta(omittable: true)
       end
