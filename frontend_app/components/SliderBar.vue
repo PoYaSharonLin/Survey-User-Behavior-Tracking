@@ -1,5 +1,5 @@
 <template>
-  <div class="slider-bar-wrapper" :data-track="'slider-q' + (questionIndex + 1)">
+  <div class="slider-bar-wrapper" :data-track="trackPrefix + '-slider'">
     <div class="slider-input-container" :class="{ disabled: finished }">
       <input
         type="range"
@@ -35,7 +35,7 @@ export default {
     step:          { type: Number, default: 1 },
     minLabel:      { type: String, default: '' },
     maxLabel:      { type: String, default: '' },
-    questionIndex: { type: Number, default: 0 },
+    trackPrefix:   { type: String, required: true },
     finished:      { type: Boolean, default: false },
   },
 
@@ -73,7 +73,7 @@ export default {
     emit(val, x = null, y = null, phase = 'drag') {
       this.$emit('update:modelValue', val);
       this.$emit('change', val);
-      tracker.recordSlider(val, `.native-slider-${this.questionIndex + 1}`, x, y, phase);
+      tracker.recordSlider(val, `${this.trackPrefix}-slider`, x, y, phase);
     },
   },
 };

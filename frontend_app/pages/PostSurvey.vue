@@ -15,12 +15,12 @@
             <p>請根據您的感受，使用滑桿作答（1 為最低，7 為最高）。</p>
           </section>
 
-          <div v-for="(q, index) in questions" :key="index" class="survey-section" :data-track="'pq' + (index + 1)">
+          <div v-for="(q, index) in questions" :key="index" class="survey-section" :data-track="'pq' + (index + 1) + '-element'">
             <label class="question-label">({{ index + 1 }}) {{ q.text }} *</label>
             <div class="slider-container">
               <SliderBar
                 v-model="answers[index]"
-                :question-index="index"
+                :track-prefix="'pq' + (index + 1)"
                 :min="1"
                 :max="7"
                 :step="1"
@@ -34,7 +34,7 @@
                 class="confirm-btn"
                 :class="{ confirmed: confirmedQuestions[index] }"
                 @click="toggleConfirm(index)"
-                :data-track="'confirm-pq' + (index + 1)"
+                :data-track="'pq' + (index + 1) + '-confirm'"
                 :title="confirmedQuestions[index] ? '已確認' : '確認答案'"
               >
                 <span class="icon">✓</span>
@@ -45,7 +45,7 @@
           <div class="submit-row">
             <button
               class="submit-btn"
-              data-track="postsurvey-submit-button"
+              data-track="postsurvey-submit"
               :disabled="submitting || submitted"
               @click="submit"
             >

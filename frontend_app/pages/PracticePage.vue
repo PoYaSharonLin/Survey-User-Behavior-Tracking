@@ -13,12 +13,12 @@
             </p>
           </section>
 
-          <div class="practice-section" data-track="practice-q1">
+          <div class="practice-section" data-track="practice-q1-element">
             <label class="question-label">請問您是否了解滑桿操作？ *</label>
             <div class="slider-container">
               <SliderBar
                 v-model="answer"
-                :question-index="0"
+                track-prefix="practice-q1"
                 :min="1"
                 :max="7"
                 :step="1"
@@ -33,7 +33,7 @@
                 class="confirm-btn"
                 :class="{ confirmed, disabled: !sliderMoved }"
                 @click="confirm"
-                data-track="confirm-practice"
+                data-track="practice-q1-confirm"
                 :disabled="!sliderMoved || confirmed"
                 :title="confirmed ? '已確認' : (!sliderMoved ? '請先移動滑桿' : '確認答案')"
               >
@@ -48,7 +48,7 @@
               :class="{ active: confirmed }"
               @click="goNext"
               :disabled="!confirmed"
-              data-track="next-to-survey"
+              data-track="practice-next"
             >
               下一頁
             </button>

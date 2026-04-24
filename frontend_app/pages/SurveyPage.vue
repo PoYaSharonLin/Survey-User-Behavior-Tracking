@@ -1,10 +1,10 @@
 <template>
-  <div class="survey-wrapper" data-track="background">
+  <div class="survey-wrapper" data-track="page-background">
     <DebugOverlay />
     <BehaviorTracker>
       <div class="survey-page">
         <!-- Header -->
-        <header class="survey-header" data-track="header">
+        <header class="survey-header" data-track="page-header">
           <h1 class="survey-title">飲食行為問卷</h1>
           <p class="survey-subtitle warning" v-if="!userId">
             ⚠ 未找到使用者 ID。請使用提供的連結進入此頁面。
@@ -13,18 +13,18 @@
 
         <!-- Survey body -->
         <main v-if="userId" class="survey-body">
-          <section class="intro-section" data-track="intro">
+          <section class="intro-section" data-track="page-intro">
             <h2>過去一週的飲食回報</h2>
             <p>請根據您對以下敘述的同意程度，使用滑桿作答（1 為最低，7 為最高）。</p>
           </section>
 
-          <div v-for="(q, index) in questions" :key="index" class="survey-section" :data-track="'q' + (index + 1)">
-            <label class="question-label" :data-track="'label-q' + (index + 1)">({{ index + 1 }}) {{ q.text }} *</label>
+          <div v-for="(q, index) in questions" :key="index" class="survey-section" :data-track="'q' + (index + 1) + '-element'">
+            <label class="question-label" :data-track="'q' + (index + 1) + '-label'">({{ index + 1 }}) {{ q.text }} *</label>
             <!-- Slider Container -->
             <div class="slider-container">
               <SliderBar
                 v-model="answers.dietary[index]"
-                :question-index="index"
+                :track-prefix="'q' + (index + 1)"
                 :min="1"
                 :max="7"
                 :step="1"
@@ -39,7 +39,7 @@
                 class="confirm-btn"
                 :class="{ confirmed: confirmedQuestions[index] }"
                 @click="toggleConfirm(index)"
-                :data-track="'confirm-q' + (index + 1)"
+                :data-track="'q' + (index + 1) + '-confirm'"
                 :title="confirmedQuestions[index] ? '已確認' : '確認答案'"
               >
                 <span class="icon">✓</span>
@@ -51,7 +51,7 @@
           <div class="submit-row">
             <button
               class="submit-btn"
-              data-track="next-button"
+              data-track="survey-next"
               @click="goNext"
             >
               下一頁
