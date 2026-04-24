@@ -99,6 +99,19 @@ bundle exec rake db:reset       # Drop + migrate (destructive)
 bundle exec rake db:drop        # Delete database (destructive)
 ```
 
+## Inspecting uploaded S3 data
+
+Session event blobs are uploaded to S3 under `behavior_data/`. Quick ways to
+check what's there:
+
+```shell
+# List all uploaded sessions
+aws s3 ls s3://amzn-s3-frontend-monitoring/behavior_data/
+
+# Download a specific session for local inspection
+aws s3 cp s3://amzn-s3-frontend-monitoring/behavior_data/<key> ./downloaded.bin
+```
+
 ## Production
 
 Set `DATABASE_URL` to a PostgreSQL connection string in `secrets.yml` or as an environment variable. For high-volume event data, [TimescaleDB](https://www.timescale.com/) is a drop-in upgrade — no application code changes required:
