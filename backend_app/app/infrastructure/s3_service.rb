@@ -18,12 +18,12 @@ module SurveyTracker
       end
 
       # Uploads behavior events for a specific session as a JSON file
-      def upload_session_data(user_id, events)
+      def upload_session_data(respondent_id, events)
         return if events.empty?
 
-        key = "behavior_data/#{user_id}_#{Time.now.to_i}.json"
+        key = "behavior_data/#{respondent_id}_#{Time.now.to_i}.json"
         body = {
-          user_id: user_id,
+          respondent_id: respondent_id,
           exported_at: Time.now.utc.iso8601,
           events: events.map(&:to_h)
         }.to_json
@@ -42,8 +42,8 @@ module SurveyTracker
 
       # Returns a presigned PUT URL for the frontend to upload a binary blob directly to S3.
       # Expires in 10 minutes — generated on submit click so expiry is not a concern.
-      def presign_upload_url(user_id)
-        key = "behavior_data/#{user_id}_#{Time.now.to_i}.bin"
+      def presign_upload_url(respondent_id)
+        key = "behavior_data/#{respondent_id}_#{Time.now.to_i}.bin"
         presigner = Aws::S3::Presigner.new(client: @s3_client)
         url = presigner.presigned_url(
           :put_object,

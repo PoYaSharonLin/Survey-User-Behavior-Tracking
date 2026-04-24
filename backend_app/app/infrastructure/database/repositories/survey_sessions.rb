@@ -5,33 +5,33 @@ module SurveyTracker
     module Repository
       # Repository for survey_sessions table
       class SurveySessions
-        def find_by_user_id(user_id)
-          Orm::SurveySession.first(user_id:)
+        def find_by_respondent_id(respondent_id)
+          Orm::SurveySession.first(respondent_id:)
         end
 
-        # Idempotent: returns existing session if user_id already recorded
-        def find_or_create(user_id:, original_url: nil, metadata: nil)
-          existing = find_by_user_id(user_id)
+        # Idempotent: returns existing session if respondent_id already recorded
+        def find_or_create(respondent_id:, original_url: nil, metadata: nil)
+          existing = find_by_respondent_id(respondent_id)
           return existing if existing
 
           Orm::SurveySession.create(
-            user_id:,
+            respondent_id:,
             original_url:,
             metadata:,
             started_at: Time.now.utc
           )
         end
 
-        def update_ended_at(user_id:)
-          session = find_by_user_id(user_id)
+        def update_ended_at(respondent_id:)
+          session = find_by_respondent_id(respondent_id)
           return nil unless session
 
           session.update(ended_at: Time.now.utc)
           session
         end
 
-        def update_s3_key(user_id:, s3_key:)
-          session = find_by_user_id(user_id)
+        def update_s3_key(respondent_id:, s3_key:)
+          session = find_by_respondent_id(respondent_id)
           return nil unless session
 
           session.update(s3_key:)

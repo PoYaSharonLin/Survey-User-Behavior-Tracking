@@ -11,19 +11,19 @@ module SurveyTracker
       include Roar::JSON
 
       property :id
-      property :user_id
+      property :respondent_id
       property :original_url
       property :started_at
       property :ended_at
       property :metadata
 
-      # Generates the canonical survey URL containing the user_id.
-      # Other apps can GET /api/survey/session/:user_id and read this field.
+      # Generates the canonical survey URL containing the respondent_id.
+      # Other apps can GET /api/survey/session/:respondent_id and read this field.
       property :share_url, exec_context: :decorator
 
       def share_url
         base_url = ENV['APP_BASE_URL'] || 'http://localhost:8080'
-        "#{base_url}/survey?uid=#{represented.user_id}"
+        "#{base_url}/survey?uid=#{represented.respondent_id}"
       end
     end
   end

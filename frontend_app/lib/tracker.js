@@ -1,21 +1,19 @@
 /**
  * tracker.js
  *
- * Trajectory-based user behaviour tracker.
+ * Raw event tracker — records every user interaction as individual events
+ * and flushes them to the backend every FLUSH_INTERVAL ms.
  *
- * Raw DOM events are grouped into trajectory objects before being sent to the
- * backend.  Each trajectory has a short type code and a compact events array:
- *
- *   MM  Mouse Movement   [[x, y, "mousemove", ts_ms], ...]
- *   PC  Point & Click    [[x, y, "mousedown", ts], [x, y, "mouseup", ts], [x, y, "click", ts]]
- *   HL  Highlight        [[x, y, "highlight", ts, text, char_count]]
- *   HV  Hover            [[x_enter, y_enter, "mouseenter", ts], [x_exit, y_exit, "mouseleave", ts, duration_ms]]
- *   SC  Scroll           [[x, y, "scroll", ts, scroll_x, scroll_y, direction], ...]
- *   SL  Slider           [[x, y, "slider", ts, value]]
- *
- * Trajectories are flushed to the backend every FLUSH_INTERVAL ms.
- * A full in-memory history is kept so that tracker.getBinaryBlob() can produce
- * a msgpack binary for S3 upload on submit.
+ * Event types recorded:
+ *   mousemove   { type, x, y, ts }
+ *   mousedown   { type, x, y, ts }
+ *   mouseup     { type, x, y, ts }
+ *   keydown     { type, key, x, y, ts, element }  // Enter/Space on activatable elements
+ *   highlight   { type, x, y, ts, text, charCount }
+ *   mouseover   { type, element, x, y, ts }
+ *   mouseout    { type, element, x, y, ts, duration }
+ *   scroll      { type, x, y, ts, scrollX, scrollY, direction }
+ *   slider      { type, element, x, y, ts, value, phase }  // phase: 'drag' | 'release'
  *
  * Usage:
  *   tracker.start(userId)   — begin tracking
@@ -26,10 +24,29 @@
 import axios from 'axios';
 import { encode as msgpackEncode } from '@msgpack/msgpack';
 
-const FLUSH_INTERVAL  = 100;   // ms — periodic flush cadence
-const MAX_BUFFER      = 500;   // flush MM/SC early when buffer hits this size
-const MOTION_THROTTLE = 16;    // ms — ~60 fps cap for mousemove
-const MIN_DISTANCE    = 4;     // px — minimum movement to record a mousemove sample
+const FLUSH_INTERVAL = 100;  // ms — periodic flush cadence
+const MIN_DISTANCE   = 1;    // px — minimum movement to record a mousemove sample
+
+// ── LocalStorage persistence ──────────────────────────────────────────────────
+
+function historyKey(uid) {
+  return `survey_behavior_history_${uid}`;
+}
+
+function loadPersistedHistory(uid) {
+  try {
+    const raw = localStorage.getItem(historyKey(uid));
+    return raw ? JSON.parse(raw) : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+function savePersistedHistory(uid, history) {
+  try {
+    localStorage.setItem(historyKey(uid), JSON.stringify(history));
+  } catch (_) { /* quota exceeded — silently skip */ }
+}
 
 // ── Module-level state (reset on each start()) ───────────────────────────────
 
@@ -39,47 +56,33 @@ let lastRecordedY = null;
 let lastScrollY   = window.scrollY;
 let hoverMap      = {};
 
-let mmBuffer        = [];               // accumulating mousemove points
-let scBuffer        = [];               // accumulating scroll points
-let pcState         = { down: null, up: null };  // mousedown/mouseup waiting for click
-let trajectoryQueue = [];               // completed trajectories pending flush to DB
-let fullHistory     = [];               // all completed trajectories (for binary export)
-let flushTimer      = null;
-let paused          = false;            // true while the page is hidden (visibility API)
+let rawQueue    = [];   // events pending flush to DB
+let fullHistory = [];   // all events (for binary export), persisted across refreshes
+let flushTimer  = null;
+let paused      = false;
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
-function pushTrajectory(type, events) {
-  const traj = { type, events };
-  trajectoryQueue.push(traj);
-  fullHistory.push(traj);
-}
-
-function drainMM() {
-  if (mmBuffer.length === 0) return;
-  pushTrajectory('MM', mmBuffer.splice(0));
-}
-
-function drainSC() {
-  if (scBuffer.length === 0) return;
-  pushTrajectory('SC', scBuffer.splice(0));
+function pushEvent(evt) {
+  rawQueue.push(evt);
+  fullHistory.push(evt);
+  if (tracker.onEvent) tracker.onEvent(evt);
 }
 
 async function flush() {
   if (paused) return;
-  drainMM();
-  drainSC();
-  if (!userId || trajectoryQueue.length === 0) return;
+  if (!userId || rawQueue.length === 0) return;
 
-  const batch = trajectoryQueue.splice(0);
+  const batch = rawQueue.splice(0);
   try {
     await axios.post(
       `/api/behavior/${encodeURIComponent(userId)}/events`,
-      { trajectories: batch }
+      { events: batch }
     );
+    savePersistedHistory(userId, fullHistory);
   } catch (err) {
     console.warn('[tracker] flush failed, re-queuing:', err.message);
-    trajectoryQueue.unshift(...batch);
+    rawQueue.unshift(...batch);
   }
 }
 
@@ -93,7 +96,7 @@ function throttle(fn, delay) {
 
 // ── DOM event handlers ────────────────────────────────────────────────────────
 
-const onMouseMove = throttle((e) => {
+const onMouseMove = (e) => {
   const cx = Math.round(e.clientX);
   const cy = Math.round(e.clientY);
 
@@ -105,30 +108,40 @@ const onMouseMove = throttle((e) => {
   lastRecordedX = cx;
   lastRecordedY = cy;
 
-  mmBuffer.push([cx, cy, 'mousemove', Date.now()]);
-  if (mmBuffer.length >= MAX_BUFFER) drainMM();
-}, MOTION_THROTTLE);
+  const element = e.target.closest('[data-track]')?.dataset.track ?? null;
+  pushEvent({ type: 'mousemove', x: cx, y: cy, ts: Date.now(), element });
+};
 
 function onMouseDown(e) {
-  pcState.down = [Math.round(e.clientX), Math.round(e.clientY), 'mousedown', Date.now()];
-  pcState.up   = null;
+  const element = e.target.closest('[data-track]')?.dataset.track ?? null;
+  pushEvent({ type: 'mousedown', x: Math.round(e.clientX), y: Math.round(e.clientY), ts: Date.now(), element });
 }
 
 function onMouseUp(e) {
-  if (pcState.down) {
-    pcState.up = [Math.round(e.clientX), Math.round(e.clientY), 'mouseup', Date.now()];
-  }
+  const element = e.target.closest('[data-track]')?.dataset.track ?? null;
+  pushEvent({ type: 'mouseup', x: Math.round(e.clientX), y: Math.round(e.clientY), ts: Date.now(), element });
 }
 
-function onClick(e) {
-  const clickEvt = [Math.round(e.clientX), Math.round(e.clientY), 'click', Date.now()];
-  const events = [];
-  if (pcState.down) events.push(pcState.down);
-  if (pcState.up)   events.push(pcState.up);
-  events.push(clickEvt);
-  pushTrajectory('PC', events);
-  pcState.down = null;
-  pcState.up   = null;
+const ACTIVATABLE_SELECTOR =
+  'button, a[href], [role="button"], [role="link"], ' +
+  'input[type="submit"], input[type="button"], input[type="reset"], ' +
+  'input[type="checkbox"], input[type="radio"]';
+
+function onKeyDown(e) {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  if (e.repeat) return;
+  const el = e.target;
+  if (!el.matches?.(ACTIVATABLE_SELECTOR)) return;
+  const rect    = el.getBoundingClientRect();
+  const element = el.closest('[data-track]')?.dataset.track ?? null;
+  pushEvent({
+    type:    'keydown',
+    key:     e.key === ' ' ? 'Space' : e.key,
+    x:       Math.round(rect.left + rect.width / 2),
+    y:       Math.round(rect.top + rect.height / 2),
+    ts:      Date.now(),
+    element,
+  });
 }
 
 function onSelectionChange() {
@@ -139,35 +152,35 @@ function onSelectionChange() {
 
   const range = sel.getRangeAt(0);
   const rect  = range.getBoundingClientRect();
-  pushTrajectory('HL', [[
-    Math.round(rect.left),
-    Math.round(rect.top),
-    'highlight',
-    Date.now(),
+  pushEvent({
+    type:      'highlight',
+    x:         Math.round(rect.left),
+    y:         Math.round(rect.top),
+    ts:        Date.now(),
     text,
-    text.length,
-  ]]);
+    charCount: text.length,
+  });
 }
 
-function onMouseEnter(e) {
-  const key = e.currentTarget.dataset.track || e.currentTarget.tagName;
-  hoverMap[key] = {
-    startTime: Date.now(),
-    startX:    Math.round(e.clientX),
-    startY:    Math.round(e.clientY),
-  };
+function onDelegatedMouseOver(e) {
+  const el = e.target.closest('[data-track]');
+  if (!el) return;
+  if (e.relatedTarget && el.contains(e.relatedTarget)) return;
+  const key = el.dataset.track;
+  hoverMap[key] = { startTime: Date.now(), startX: Math.round(e.clientX), startY: Math.round(e.clientY) };
+  pushEvent({ type: 'mouseover', element: key, x: Math.round(e.clientX), y: Math.round(e.clientY), ts: Date.now() });
 }
 
-function onMouseLeave(e) {
-  const key = e.currentTarget.dataset.track || e.currentTarget.tagName;
+function onDelegatedMouseOut(e) {
+  const el = e.target.closest('[data-track]');
+  if (!el) return;
+  if (e.relatedTarget && el.contains(e.relatedTarget)) return;
+  const key = el.dataset.track;
   if (!hoverMap[key]) return;
-  const { startTime, startX, startY } = hoverMap[key];
+  const { startTime } = hoverMap[key];
   delete hoverMap[key];
-
-  pushTrajectory('HV', [
-    [startX, startY, 'mouseenter', startTime],
-    [Math.round(e.clientX), Math.round(e.clientY), 'mouseleave', Date.now(), Date.now() - startTime],
-  ]);
+  const now = Date.now();
+  pushEvent({ type: 'mouseout', element: key, x: Math.round(e.clientX), y: Math.round(e.clientY), ts: now, duration: now - startTime });
 }
 
 const onScroll = throttle(() => {
@@ -175,27 +188,23 @@ const onScroll = throttle(() => {
   const direction = currentY > lastScrollY ? 'down' : 'up';
   lastScrollY = currentY;
 
-  scBuffer.push([
-    lastRecordedX ?? 0,
-    lastRecordedY ?? 0,
-    'scroll',
-    Date.now(),
-    window.scrollX,
-    currentY,
+  pushEvent({
+    type:      'scroll',
+    x:         lastRecordedX ?? 0,
+    y:         lastRecordedY ?? 0,
+    ts:        Date.now(),
+    scrollX:   window.scrollX,
+    scrollY:   currentY,
     direction,
-  ]);
-  if (scBuffer.length >= MAX_BUFFER) drainSC();
+  });
 }, FLUSH_INTERVAL);
 
 function onVisibilityChange() {
   if (document.visibilityState === 'hidden') {
     paused = true;
-    // Drain buffers so partial data is not lost when the tab comes back
-    drainMM();
-    drainSC();
   } else {
-    paused = false;
-    lastScrollY   = window.scrollY;
+    paused      = false;
+    lastScrollY = window.scrollY;
     lastRecordedX = null;
     lastRecordedY = null;
   }
@@ -210,30 +219,24 @@ const tracker = {
       console.warn('[tracker] Already running — call stop() first.');
       return;
     }
-    userId          = uid;
-    mmBuffer        = [];
-    scBuffer        = [];
-    pcState         = { down: null, up: null };
-    trajectoryQueue = [];
-    fullHistory     = [];
-    lastRecordedX   = null;
-    lastRecordedY   = null;
-    lastScrollY     = window.scrollY;
-    hoverMap        = {};
-    paused          = document.visibilityState === 'hidden';
+    userId        = uid;
+    rawQueue      = [];
+    fullHistory   = loadPersistedHistory(uid);
+    lastRecordedX = null;
+    lastRecordedY = null;
+    lastScrollY   = window.scrollY;
+    hoverMap      = {};
+    paused        = document.visibilityState === 'hidden';
 
-    document.addEventListener('mousemove',       onMouseMove);
-    document.addEventListener('mousedown',       onMouseDown);
-    document.addEventListener('mouseup',         onMouseUp);
-    document.addEventListener('click',           onClick);
-    document.addEventListener('selectionchange', onSelectionChange);
-    document.addEventListener('scroll',          onScroll, { passive: true });
+    document.addEventListener('mousemove',        onMouseMove);
+    document.addEventListener('mousedown',        onMouseDown);
+    document.addEventListener('mouseup',          onMouseUp);
+    document.addEventListener('keydown',          onKeyDown);
+    document.addEventListener('selectionchange',  onSelectionChange);
+    document.addEventListener('scroll',           onScroll, { passive: true });
     document.addEventListener('visibilitychange', onVisibilityChange);
-
-    document.querySelectorAll('[data-track]').forEach(el => {
-      el.addEventListener('mouseenter', onMouseEnter);
-      el.addEventListener('mouseleave', onMouseLeave);
-    });
+    document.addEventListener('mouseover',        onDelegatedMouseOver);
+    document.addEventListener('mouseout',         onDelegatedMouseOut);
 
     clearInterval(flushTimer);
     flushTimer = setInterval(flush, FLUSH_INTERVAL);
@@ -243,15 +246,12 @@ const tracker = {
     document.removeEventListener('mousemove',        onMouseMove);
     document.removeEventListener('mousedown',        onMouseDown);
     document.removeEventListener('mouseup',          onMouseUp);
-    document.removeEventListener('click',            onClick);
+    document.removeEventListener('keydown',          onKeyDown);
     document.removeEventListener('selectionchange',  onSelectionChange);
     document.removeEventListener('scroll',           onScroll);
     document.removeEventListener('visibilitychange', onVisibilityChange);
-
-    document.querySelectorAll('[data-track]').forEach(el => {
-      el.removeEventListener('mouseenter', onMouseEnter);
-      el.removeEventListener('mouseleave', onMouseLeave);
-    });
+    document.removeEventListener('mouseover',        onDelegatedMouseOver);
+    document.removeEventListener('mouseout',         onDelegatedMouseOut);
 
     clearInterval(flushTimer);
     await flush();
@@ -260,61 +260,52 @@ const tracker = {
 
   /**
    * Record a slider interaction. Called directly from SliderBar.vue.
-   * Also clears any dangling PC state (slider mousedown does not produce a click).
    */
-  recordSlider(value, selector = '.slider-bar', x = null, y = null) {
-    pcState.down = null;
-    pcState.up   = null;
-
-    pushTrajectory('SL', [[
-      x !== null ? Math.round(x) : 0,
-      y !== null ? Math.round(y) : 0,
-      'slider',
-      Date.now(),
+  recordSlider(value, selector = '.slider-bar', x = null, y = null, phase = 'drag') {
+    pushEvent({
+      type:    'slider',
+      element: selector,
+      x:       x !== null ? Math.round(x) : 0,
+      y:       y !== null ? Math.round(y) : 0,
+      ts:      Date.now(),
       value,
-    ]]);
+      phase,
+    });
   },
 
-  /**
-   * Return the last known mouse position.
-   * Used by SliderBar.vue since InputEvent/change have no clientX/Y.
-   */
   getLastPosition() {
     return { x: lastRecordedX, y: lastRecordedY };
   },
 
+  clearPersistedHistory() {
+    if (userId) localStorage.removeItem(historyKey(userId));
+    fullHistory = [];
+  },
+
   /**
-   * Encode the full session trajectory history as a binary blob for S3 upload.
+   * Encode the full session event history as a binary blob for S3 upload.
    *
    * Binary format:
    *   Bytes 0–3  : Magic "SBEH"  (0x53 0x42 0x45 0x48)
    *   Bytes 4–5  : uid length    (uint16, big-endian)
    *   Bytes 6–N  : uid           (UTF-8 string)
-   *   Bytes N+1… : msgpack-encoded Array of trajectory objects
+   *   Bytes N+1… : msgpack-encoded Array of raw event objects
    *
    * Call this before tracker.stop() (while userId is still set).
    */
   getBinaryBlob() {
-    // Drain any in-progress streaming buffers into fullHistory (without sending to DB)
-    if (mmBuffer.length > 0) fullHistory.push({ type: 'MM', events: mmBuffer.slice() });
-    if (scBuffer.length > 0) fullHistory.push({ type: 'SC', events: scBuffer.slice() });
-
     const uid      = userId || '';
     const uidBytes = new TextEncoder().encode(uid);
-    const payload  = msgpackEncode(fullHistory);   // Uint8Array
+    const payload  = msgpackEncode(fullHistory);
 
-    const result   = new Uint8Array(4 + 2 + uidBytes.length + payload.length);
-    const view     = new DataView(result.buffer);
+    const result = new Uint8Array(4 + 2 + uidBytes.length + payload.length);
+    const view   = new DataView(result.buffer);
 
-    // Magic "SBEH"
     result[0] = 0x53; result[1] = 0x42;
     result[2] = 0x45; result[3] = 0x48;
 
-    // uid length (uint16 big-endian) + uid bytes
     view.setUint16(4, uidBytes.length, false);
     result.set(uidBytes, 6);
-
-    // msgpack payload
     result.set(payload, 6 + uidBytes.length);
 
     return result.buffer;

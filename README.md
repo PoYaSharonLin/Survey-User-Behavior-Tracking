@@ -58,7 +58,7 @@ Then open <http://localhost:9292/survey?uid=your-user-id> in your browser (the b
 1. A user receives a link such as `http://your-domain.com/survey?uid=abc-123`
 2. On load, the app reads `uid` from the URL, stores it in `localStorage`, and registers a session with the backend
 3. All interactions (mouse movement, clicks, text highlights, hover, scroll, slider changes) are captured and batched to the backend every 300 ms
-4. Other applications can call `GET /api/survey/session/:user_id` to retrieve the `share_url` containing the user ID
+4. Other applications can call `GET /api/survey/session/:respondent_id` to retrieve the `share_url` containing the user ID
 
 ## API Reference
 
@@ -66,15 +66,14 @@ Then open <http://localhost:9292/survey?uid=your-user-id> in your browser (the b
 
 | Method | Path | Description |
 |---|---|---|
-| `POST` | `/api/survey/session` | Create or resume a session (`{ user_id, original_url }`) |
-| `GET` | `/api/survey/session/:user_id` | Get session details including `share_url` |
+| `POST` | `/api/survey/session` | Create or resume a session (`{ respondent_id, original_url }`) |
+| `GET` | `/api/survey/session/:respondent_id` | Get session details including `share_url` |
 
 ### Behavior Events
 
 | Method | Path | Description |
 |---|---|---|
-| `POST` | `/api/behavior/:user_id/events` | Record a batch of events (`{ events: [...] }`) |
-| `GET` | `/api/behavior/:user_id/events` | List all events for a session |
+| `POST` | `/api/behavior/:respondent_id/events` | Record a batch of events (`{ events: [...] }`) |
 
 **Tracked event types:** `mousemove`, `click`, `highlight`, `hover`, `scroll`, `slider`
 

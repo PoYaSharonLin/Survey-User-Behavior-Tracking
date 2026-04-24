@@ -15,10 +15,10 @@ puts "🔍 Looking up data for UID: #{TARGET_UID}..."
 
 begin
   # 1. Find the session
-  session = SurveyTracker::Database::Repository::SurveySessions.new.find_by_user_id(TARGET_UID)
+  session = SurveyTracker::Database::Repository::SurveySessions.new.find_by_respondent_id(TARGET_UID)
   
   if session.nil?
-    puts "❌ Error: No session found for user_id '#{TARGET_UID}'"
+    puts "❌ Error: No session found for respondent_id '#{TARGET_UID}'"
     exit 1
   end
 

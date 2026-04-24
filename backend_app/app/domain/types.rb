@@ -14,7 +14,7 @@ module SurveyTracker
 
     # Event type enum — all valid behavior event classifications
     BehaviorEventType = Types::String.enum(
-      'mousemove', 'click', 'highlight', 'hover', 'scroll', 'slider'
+      'mousemove', 'keydown', 'highlight', 'hover', 'scroll', 'slider'
     )
 
     # Flexible datetime that accepts Ruby Time objects (returned by SQLite/Sequel)

@@ -4,7 +4,7 @@ require 'benchmark'
 
 begin
   uid = '12345678'
-  session = SurveyTracker::Database::Repository::SurveySessions.new.find_by_user_id(uid)
+  session = SurveyTracker::Database::Repository::SurveySessions.new.find_by_respondent_id(uid)
   
   if session
     puts "Found session #{session.id} for user #{uid}"

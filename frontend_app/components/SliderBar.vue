@@ -1,5 +1,5 @@
 <template>
-  <div class="slider-bar-wrapper" data-track="slider">
+  <div class="slider-bar-wrapper" :data-track="'slider-q' + (questionIndex + 1)">
     <div class="slider-input-container" :class="{ disabled: finished }">
       <input
         type="range"
@@ -10,6 +10,7 @@
         v-model.number="internalValue"
         @input="onInput"
         @change="onFinish"
+        @pointermove="onPointerMove"
         :disabled="finished"
       >
     </div>
@@ -43,6 +44,8 @@ export default {
   data() {
     return {
       internalValue: this.modelValue,
+      pointerX: null,
+      pointerY: null,
     };
   },
 
@@ -53,27 +56,24 @@ export default {
   },
 
   methods: {
+    onPointerMove(e) {
+      this.pointerX = Math.round(e.clientX);
+      this.pointerY = Math.round(e.clientY);
+    },
+
     onInput(e) {
       if (this.finished) return;
-      // InputEvent has no clientX/Y; pointer-capture during range-drag blocks
-      // element-level listeners. Use the last position recorded by the global
-      // mousemove tracker (user must hover over slider before dragging it).
-      const { x, y } = tracker.getLastPosition();
-      const val = this.internalValue;
-      setTimeout(() => {
-        this.emit(val, x, y);
-      }, 30);
+      this.emit(this.internalValue, this.pointerX, this.pointerY, 'drag');
     },
 
     onFinish(e) {
-      const { x, y } = tracker.getLastPosition();
-      this.emit(this.internalValue, x, y);
+      this.emit(this.internalValue, this.pointerX, this.pointerY, 'release');
     },
 
-    emit(val, x = null, y = null) {
+    emit(val, x = null, y = null, phase = 'drag') {
       this.$emit('update:modelValue', val);
       this.$emit('change', val);
-      tracker.recordSlider(val, `.native-slider-${this.questionIndex + 1}`, x, y);
+      tracker.recordSlider(val, `.native-slider-${this.questionIndex + 1}`, x, y, phase);
     },
   },
 };

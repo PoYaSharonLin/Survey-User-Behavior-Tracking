@@ -9,7 +9,7 @@ module SurveyTracker
       # Immutable domain entity representing a user's survey session
       class SurveySession < Dry::Struct
         attribute :id,           SurveyTracker::Types::Integer.optional.meta(omittable: true)
-        attribute :user_id,      SurveyTracker::Types::String
+        attribute :respondent_id, SurveyTracker::Types::String
         attribute :original_url, SurveyTracker::Types::String.optional.meta(omittable: true)
         attribute :started_at,   SurveyTracker::Types::FlexibleDateTime
         attribute :ended_at,     SurveyTracker::Types::FlexibleDateTime.optional.meta(omittable: true)

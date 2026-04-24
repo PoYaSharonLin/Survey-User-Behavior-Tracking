@@ -5,27 +5,25 @@ require 'json'
 module SurveyTracker
   module Database
     module Repository
-      # Repository for the trajectories table
+      # Repository for the behavior_events table
       class BehaviorEvents
-        # Insert a batch of trajectories in a single DB transaction
-        def create_batch(survey_session_id:, trajectories:)
+        # Insert a batch of events — one row per event, all in a single multi-insert.
+        def create_batch(survey_session_id:, events:)
           now = Time.now.utc
-          rows = trajectories.map do |traj|
+          rows = events.map do |evt|
             {
               survey_session_id: survey_session_id,
-              trajectory_type:   traj[:type],
-              events:            traj[:events].to_json,
-              created_at:        now,
+              event:             evt.to_json,
+              created_at:        now
             }
           end
-
-          SurveyTracker::Api.db[:trajectories].multi_insert(rows)
+          SurveyTracker::Api.db[:behavior_events].multi_insert(rows)
         end
 
         def list_by_session(survey_session_id:, limit: 5000)
-          Orm::Trajectory
+          Orm::BehaviorEvent
             .where(survey_session_id:)
-            .order(:created_at)
+            .order(:created_at, :id)
             .limit(limit)
             .all
         end

@@ -3,23 +3,23 @@
 module SurveyTracker
   module Service
     module SurveySessions
-      # Creates a new survey session for the given user_id, or returns existing one.
-      # Idempotent: calling with the same user_id always yields the same session.
+      # Creates a new survey session for the given respondent_id, or returns existing one.
+      # Idempotent: calling with the same respondent_id always yields the same session.
       class CreateSession < ApplicationOperation
 
-        def call(user_id:, original_url: nil, metadata: nil)
-          return Failure(bad_request('user_id is required')) if user_id.nil? || user_id.strip.empty?
+        def call(respondent_id:, original_url: nil, metadata: nil)
+          return Failure(bad_request('respondent_id is required')) if respondent_id.nil? || respondent_id.strip.empty?
 
           session_record = Database::Repository::SurveySessions.new.find_or_create(
-            user_id:,
+            respondent_id:,
             original_url:,
             metadata: metadata&.to_json
           )
 
           session = Domain::SurveySessions::SurveySession.new(
-            id:           session_record.id,
-            user_id:      session_record.user_id,
-            original_url: session_record.original_url,
+            id:             session_record.id,
+            respondent_id:  session_record.respondent_id,
+            original_url:   session_record.original_url,
             started_at:   session_record.started_at,
             ended_at:     session_record.ended_at,
             metadata:     session_record.metadata,
@@ -32,7 +32,7 @@ module SurveyTracker
             begin
               repo   = Database::Repository::BehaviorEvents.new
               events = repo.list_by_session(survey_session_id: session.id)
-              Infrastructure::S3Service.new.upload_session_data(user_id, events)
+              Infrastructure::S3Service.new.upload_session_data(respondent_id, events)
             rescue StandardError => e
               # Log but don't fail the session creation/update
               puts "[S3 Export Failed] #{e.message}"

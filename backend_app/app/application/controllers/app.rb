@@ -35,12 +35,12 @@ module SurveyTracker
       r.public
 
       r.on 'api' do
-        # Survey session management: POST/GET /api/survey/session(/:user_id)
+        # Survey session management: POST/GET /api/survey/session(/:respondent_id)
         r.on 'survey' do
           r.run Routes::Survey
         end
 
-        # Behavior event ingestion: POST/GET /api/behavior/:user_id/events
+        # Behavior event ingestion: POST /api/behavior/:respondent_id/events
         r.on 'behavior' do
           r.run Routes::Behavior
         end

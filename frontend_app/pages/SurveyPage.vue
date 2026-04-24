@@ -1,9 +1,10 @@
 <template>
-  <div class="survey-wrapper">
+  <div class="survey-wrapper" data-track="background">
+    <DebugOverlay />
     <BehaviorTracker>
       <div class="survey-page">
         <!-- Header -->
-        <header class="survey-header">
+        <header class="survey-header" data-track="header">
           <h1 class="survey-title">飲食行為問卷</h1>
           <p class="survey-subtitle warning" v-if="!userId">
             ⚠ 未找到使用者 ID。請使用提供的連結進入此頁面。
@@ -12,13 +13,13 @@
 
         <!-- Survey body -->
         <main v-if="userId" class="survey-body">
-          <section class="intro-section">
+          <section class="intro-section" data-track="intro">
             <h2>過去一週的飲食回報</h2>
             <p>請根據您對以下敘述的同意程度，使用滑桿作答（1 為最低，7 為最高）。</p>
           </section>
 
           <div v-for="(q, index) in questions" :key="index" class="survey-section" :data-track="'q' + (index + 1)">
-            <label class="question-label">({{ index + 1 }}) {{ q.text }} *</label>
+            <label class="question-label" :data-track="'label-q' + (index + 1)">({{ index + 1 }}) {{ q.text }} *</label>
             <!-- Slider Container -->
             <div class="slider-container">
               <SliderBar
@@ -46,15 +47,14 @@
             </div>
           </div>
 
-          <!-- Submit -->
+          <!-- Next -->
           <div class="submit-row">
             <button
               class="submit-btn"
-              data-track="submit-button"
-              :disabled="submitted"
-              @click="submit"
+              data-track="next-button"
+              @click="goNext"
             >
-              {{ submitted ? '✓ 已提交 — 謝謝您的參與！' : '提交問卷' }}
+              下一頁
             </button>
           </div>
         </main>
@@ -71,18 +71,17 @@
 <script>
 import BehaviorTracker from '@/components/BehaviorTracker.vue';
 import SliderBar       from '@/components/SliderBar.vue';
+import DebugOverlay    from '@/components/DebugOverlay.vue';
 import session         from '@/lib/session';
-import tracker         from '@/lib/tracker';
 
 export default {
   name: 'SurveyPage',
 
-  components: { BehaviorTracker, SliderBar },
+  components: { BehaviorTracker, SliderBar, DebugOverlay },
 
   data() {
     return {
       userId:    null,
-      submitted: false,
       questions: [
         { text: '過去一週你有規律地吃三餐嗎？', minLabel: '我這七天從未規律地吃三餐', maxLabel: '我這七天都規律地吃三餐' },
         { text: '過去一週你有吃糖果或是零食嗎？', minLabel: '我這七天都有吃糖果或零食', maxLabel: '我這七天從未吃糖果或零食' },
@@ -105,91 +104,51 @@ export default {
   },
 
   async created() {
-    this.userId   = await session.init();
+    this.userId = await session.init();
+    const saved = localStorage.getItem('survey_answers_draft');
+    if (saved) {
+      try {
+        const { dietary, confirmed } = JSON.parse(saved);
+        if (Array.isArray(dietary) && dietary.length === this.answers.dietary.length) {
+          this.answers.dietary = dietary;
+        }
+        if (Array.isArray(confirmed) && confirmed.length === this.confirmedQuestions.length) {
+          this.confirmedQuestions = confirmed;
+        }
+      } catch (_) { /* ignore malformed data */ }
+    }
+  },
+
+  watch: {
+    answers: {
+      deep: true,
+      handler(val) {
+        localStorage.setItem('survey_answers_draft', JSON.stringify({
+          dietary:   val.dietary,
+          confirmed: this.confirmedQuestions,
+        }));
+      },
+    },
+    confirmedQuestions: {
+      deep: true,
+      handler(val) {
+        localStorage.setItem('survey_answers_draft', JSON.stringify({
+          dietary:   this.answers.dietary,
+          confirmed: val,
+        }));
+      },
+    },
   },
 
   methods: {
-    async submit() {
-      if (this.submitted) return;
-      this.submitted = true;
-
-      // 1. Save survey answers to session metadata
-      try {
-        await import('axios').then(({ default: axios }) =>
-          axios.post('/api/survey/session', {
-            user_id: this.userId,
-            metadata: {
-              answers: this.answers.dietary,
-              submitted_at: new Date().toISOString()
-            },
-          })
-        );
-      } catch (_) { /* non-fatal */ }
-
-      // 2. Upload binary blob directly to S3 via presigned URL.
-      //    The presigned URL is requested at submit time (not page load) so the
-      //    10-minute expiry is never a problem regardless of how long the survey took.
-      try {
-        // Step A: get a short-lived presigned PUT URL from the backend
-        const presignRes = await fetch(
-          `/api/behavior/${encodeURIComponent(this.userId)}/presigned-url`
-        );
-        if (!presignRes.ok) {
-          console.error('[submit] presigned-url request failed:', presignRes.status);
-          return;
-        }
-        const { url, key, expires_at } = await presignRes.json();
-        console.log('[presigned-url] url:', url, '| key:', key, '| expires_at:', expires_at);
-
-        // Step B: PUT the binary blob directly to S3 — backend not involved
-        const buffer = tracker.getBinaryBlob();
-        const s3Res = await fetch(url, {
-          method:  'PUT',
-          headers: { 'Content-Type': 'application/octet-stream' },
-          body:    buffer,
-        });
-        if (!s3Res.ok) {
-          console.error('[submit] S3 PUT failed:', s3Res.status);
-          return;
-        }
-        console.log('[confirm-upload] Confirm upload from S3 ✓');
-
-        // Step C: tell the backend which key was stored so it can be retrieved later
-        const confirmRes = await fetch(
-          `/api/behavior/${encodeURIComponent(this.userId)}/confirm-upload`,
-          {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ key }),
-          }
-        );
-        if (confirmRes.ok) {
-          console.log('[confirm-upload] Confirm write-in in database ✓');
-        } else {
-          console.error('[confirm-upload] Database write failed:', confirmRes.status);
-        }
-
-        // Step D: verify the stored key is retrievable via a presigned GET URL
-        const downloadRes = await fetch(
-          `/api/behavior/${encodeURIComponent(this.userId)}/download-url`
-        );
-        if (!downloadRes.ok) {
-          console.error('[download-url] GET request failed:', downloadRes.status);
-          return;
-        }
-        const { url: downloadUrl, expires_at: downloadExpiresAt } = await downloadRes.json();
-        console.log('[download-url] Get request successful ✓ | url:', downloadUrl, '| expires_at:', downloadExpiresAt);
-
-        // Step E: probe the presigned GET URL to confirm the object is accessible
-        const dataRes = await fetch(downloadUrl, { method: 'GET' });
-        if (dataRes.ok || dataRes.status === 206) {
-          console.log('[download-url] Download data successfully ✓');
-        } else {
-          console.error('[download-url] Object fetch failed:', dataRes.status);
-        }
-      } catch (err) {
-        console.error('[submit] S3 upload error:', err);
-      }
+    goNext() {
+      sessionStorage.setItem('survey_answers_v1', JSON.stringify({
+        dietary: this.answers.dietary,
+      }));
+      localStorage.removeItem('survey_answers_draft');
+      const uid   = this.userId;
+      const query = uid ? `?uid=${encodeURIComponent(uid)}` : '';
+      this.$router.push(`/postsurvey${query}`);
     },
     toggleConfirm(index) {
       this.confirmedQuestions[index] = !this.confirmedQuestions[index];

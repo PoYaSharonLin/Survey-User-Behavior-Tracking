@@ -33,7 +33,7 @@ const session = {
     // Register (or resume) the session server-side
     try {
       const resp = await axios.post('/api/survey/session', {
-        user_id:      userId,
+        respondent_id:      userId,
         original_url: localStorage.getItem(ORIG_URL_KEY) || window.location.href,
         metadata: {
           user_agent:      navigator.userAgent,
