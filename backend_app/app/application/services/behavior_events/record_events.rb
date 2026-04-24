@@ -8,7 +8,8 @@ module SurveyTracker
 
         VALID_EVENT_TYPES = %w[
           pointer-move pointer-down pointer-up pointer-over pointer-out
-          key-down highlight scroll slider-change
+          key-down key-up highlight scroll slider-change
+          focus blur visibility-change page-show page-hide
         ].freeze
 
         def call(respondent_id:, events:)

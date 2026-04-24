@@ -5,15 +5,21 @@
  * and flushes them to the backend every FLUSH_INTERVAL ms.
  *
  * Event types recorded:
- *   pointer-move   { type, x, y, ts, pointerType, element }
- *   pointer-down   { type, x, y, ts, pointerType, element }
- *   pointer-up     { type, x, y, ts, pointerType, element }
- *   pointer-over   { type, element, x, y, ts, pointerType }
- *   pointer-out    { type, element, x, y, ts, pointerType, duration }
- *   key-down       { type, key, x, y, ts, element }  // Enter/Space on activatable elements
- *   highlight      { type, x, y, ts, text, charCount }
- *   scroll         { type, x, y, ts, scrollX, scrollY, direction }
- *   slider-change  { type, element, x, y, ts, value, phase }  // phase: 'drag' | 'release'
+ *   pointer-move      { type, x, y, ts, pointerType, element }
+ *   pointer-down      { type, x, y, ts, pointerType, element }
+ *   pointer-up        { type, x, y, ts, pointerType, element }
+ *   pointer-over      { type, element, x, y, ts, pointerType }
+ *   pointer-out       { type, element, x, y, ts, pointerType, duration }
+ *   key-down          { type, key, code, ctrlKey, shiftKey, altKey, metaKey, x, y, ts, element }
+ *   key-up            { type, key, code, ctrlKey, shiftKey, altKey, metaKey, x, y, ts, element }
+ *   highlight         { type, x, y, ts, text, charCount }
+ *   scroll            { type, x, y, ts, scrollX, scrollY, direction }
+ *   slider-change     { type, element, x, y, ts, value, phase }  // phase: 'drag' | 'release'
+ *   focus             { type, x, y, ts }  // window-level
+ *   blur              { type, x, y, ts }  // window-level
+ *   visibility-change { type, x, y, ts, visibilityState }
+ *   page-show         { type, x, y, ts, persisted }
+ *   page-hide         { type, x, y, ts, persisted }
  *
  * Usage:
  *   tracker.start(userId)   — begin tracking
@@ -122,24 +128,51 @@ function onPointerUp(e) {
   pushEvent({ type: 'pointer-up', x: Math.round(e.pageX), y: Math.round(e.pageY), ts: Date.now(), pointerType: e.pointerType, element });
 }
 
-const ACTIVATABLE_SELECTOR =
-  'button, a[href], [role="button"], [role="link"], ' +
-  'input[type="submit"], input[type="button"], input[type="reset"], ' +
-  'input[type="checkbox"], input[type="radio"]';
-
-function onKeyDown(e) {
-  if (e.key !== 'Enter' && e.key !== ' ') return;
-  if (e.repeat) return;
-  const el = e.target;
-  if (!el.matches?.(ACTIVATABLE_SELECTOR)) return;
-  const rect    = el.getBoundingClientRect();
-  const element = el.closest('[data-track]')?.dataset.track ?? null;
-  pushEvent({
-    type:    'key-down',
-    key:     e.key === ' ' ? 'Space' : e.key,
+function focusedElementCenter() {
+  const el = document.activeElement;
+  if (!el || el === document.body || !el.getBoundingClientRect) {
+    return { x: null, y: null, element: null };
+  }
+  const rect = el.getBoundingClientRect();
+  return {
     x:       Math.round(rect.left + window.scrollX + rect.width / 2),
     y:       Math.round(rect.top + window.scrollY + rect.height / 2),
-    ts:      Date.now(),
+    element: el.closest?.('[data-track]')?.dataset.track ?? null,
+  };
+}
+
+function onKeyDown(e) {
+  if (e.repeat) return;
+  const { x, y, element } = focusedElementCenter();
+  pushEvent({
+    type:     'key-down',
+    key:      e.key === ' ' ? 'Space' : e.key,
+    code:     e.code,
+    ctrlKey:  e.ctrlKey,
+    shiftKey: e.shiftKey,
+    altKey:   e.altKey,
+    metaKey:  e.metaKey,
+    x,
+    y,
+    ts:       Date.now(),
+    element,
+  });
+}
+
+function onKeyUp(e) {
+  if (e.repeat) return;
+  const { x, y, element } = focusedElementCenter();
+  pushEvent({
+    type:     'key-up',
+    key:      e.key === ' ' ? 'Space' : e.key,
+    code:     e.code,
+    ctrlKey:  e.ctrlKey,
+    shiftKey: e.shiftKey,
+    altKey:   e.altKey,
+    metaKey:  e.metaKey,
+    x,
+    y,
+    ts:       Date.now(),
     element,
   });
 }
@@ -200,7 +233,15 @@ const onScroll = throttle(() => {
 }, FLUSH_INTERVAL);
 
 function onVisibilityChange() {
-  if (document.visibilityState === 'hidden') {
+  const visibilityState = document.visibilityState;
+  pushEvent({
+    type: 'visibility-change',
+    x:    null,
+    y:    null,
+    ts:   Date.now(),
+    visibilityState,
+  });
+  if (visibilityState === 'hidden') {
     paused = true;
   } else {
     paused      = false;
@@ -208,6 +249,22 @@ function onVisibilityChange() {
     lastRecordedX = null;
     lastRecordedY = null;
   }
+}
+
+function onWindowFocus() {
+  pushEvent({ type: 'focus', x: null, y: null, ts: Date.now() });
+}
+
+function onWindowBlur() {
+  pushEvent({ type: 'blur', x: null, y: null, ts: Date.now() });
+}
+
+function onPageShow(e) {
+  pushEvent({ type: 'page-show', x: null, y: null, ts: Date.now(), persisted: e.persisted });
+}
+
+function onPageHide(e) {
+  pushEvent({ type: 'page-hide', x: null, y: null, ts: Date.now(), persisted: e.persisted });
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -232,11 +289,16 @@ const tracker = {
     document.addEventListener('pointerdown',      onPointerDown);
     document.addEventListener('pointerup',        onPointerUp);
     document.addEventListener('keydown',          onKeyDown);
+    document.addEventListener('keyup',            onKeyUp);
     document.addEventListener('selectionchange',  onSelectionChange);
     document.addEventListener('scroll',           onScroll, { passive: true });
     document.addEventListener('visibilitychange', onVisibilityChange);
     document.addEventListener('pointerover',      onDelegatedPointerOver);
     document.addEventListener('pointerout',       onDelegatedPointerOut);
+    window.addEventListener('focus',              onWindowFocus);
+    window.addEventListener('blur',               onWindowBlur);
+    window.addEventListener('pageshow',           onPageShow);
+    window.addEventListener('pagehide',           onPageHide);
 
     clearInterval(flushTimer);
     flushTimer = setInterval(flush, FLUSH_INTERVAL);
@@ -247,11 +309,16 @@ const tracker = {
     document.removeEventListener('pointerdown',      onPointerDown);
     document.removeEventListener('pointerup',        onPointerUp);
     document.removeEventListener('keydown',          onKeyDown);
+    document.removeEventListener('keyup',            onKeyUp);
     document.removeEventListener('selectionchange',  onSelectionChange);
     document.removeEventListener('scroll',           onScroll);
     document.removeEventListener('visibilitychange', onVisibilityChange);
     document.removeEventListener('pointerover',      onDelegatedPointerOver);
     document.removeEventListener('pointerout',       onDelegatedPointerOut);
+    window.removeEventListener('focus',              onWindowFocus);
+    window.removeEventListener('blur',               onWindowBlur);
+    window.removeEventListener('pageshow',           onPageShow);
+    window.removeEventListener('pagehide',           onPageHide);
 
     clearInterval(flushTimer);
     await flush();
