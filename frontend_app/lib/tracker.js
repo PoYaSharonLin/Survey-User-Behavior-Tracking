@@ -5,15 +5,15 @@
  * and flushes them to the backend every FLUSH_INTERVAL ms.
  *
  * Event types recorded:
- *   mousemove   { type, x, y, ts }
- *   mousedown   { type, x, y, ts }
- *   mouseup     { type, x, y, ts }
- *   keydown     { type, key, x, y, ts, element }  // Enter/Space on activatable elements
- *   highlight   { type, x, y, ts, text, charCount }
- *   mouseover   { type, element, x, y, ts }
- *   mouseout    { type, element, x, y, ts, duration }
- *   scroll      { type, x, y, ts, scrollX, scrollY, direction }
- *   slider      { type, element, x, y, ts, value, phase }  // phase: 'drag' | 'release'
+ *   pointer-move   { type, x, y, ts, pointerType, element }
+ *   pointer-down   { type, x, y, ts, pointerType, element }
+ *   pointer-up     { type, x, y, ts, pointerType, element }
+ *   pointer-over   { type, element, x, y, ts, pointerType }
+ *   pointer-out    { type, element, x, y, ts, pointerType, duration }
+ *   key-down       { type, key, x, y, ts, element }  // Enter/Space on activatable elements
+ *   highlight      { type, x, y, ts, text, charCount }
+ *   scroll         { type, x, y, ts, scrollX, scrollY, direction }
+ *   slider-change  { type, element, x, y, ts, value, phase }  // phase: 'drag' | 'release'
  *
  * Usage:
  *   tracker.start(userId)   — begin tracking
@@ -25,7 +25,7 @@ import axios from 'axios';
 import { encode as msgpackEncode } from '@msgpack/msgpack';
 
 const FLUSH_INTERVAL = 100;  // ms — periodic flush cadence
-const MIN_DISTANCE   = 1;    // px — minimum movement to record a mousemove sample
+const MIN_DISTANCE   = 1;    // px — minimum movement to record a pointer-move sample
 
 // ── LocalStorage persistence ──────────────────────────────────────────────────
 
@@ -96,7 +96,7 @@ function throttle(fn, delay) {
 
 // ── DOM event handlers ────────────────────────────────────────────────────────
 
-const onMouseMove = (e) => {
+const onPointerMove = (e) => {
   const cx = Math.round(e.clientX);
   const cy = Math.round(e.clientY);
 
@@ -109,17 +109,17 @@ const onMouseMove = (e) => {
   lastRecordedY = cy;
 
   const element = e.target.closest('[data-track]')?.dataset.track ?? null;
-  pushEvent({ type: 'mousemove', x: cx, y: cy, ts: Date.now(), element });
+  pushEvent({ type: 'pointer-move', x: cx, y: cy, ts: Date.now(), pointerType: e.pointerType, element });
 };
 
-function onMouseDown(e) {
+function onPointerDown(e) {
   const element = e.target.closest('[data-track]')?.dataset.track ?? null;
-  pushEvent({ type: 'mousedown', x: Math.round(e.clientX), y: Math.round(e.clientY), ts: Date.now(), element });
+  pushEvent({ type: 'pointer-down', x: Math.round(e.clientX), y: Math.round(e.clientY), ts: Date.now(), pointerType: e.pointerType, element });
 }
 
-function onMouseUp(e) {
+function onPointerUp(e) {
   const element = e.target.closest('[data-track]')?.dataset.track ?? null;
-  pushEvent({ type: 'mouseup', x: Math.round(e.clientX), y: Math.round(e.clientY), ts: Date.now(), element });
+  pushEvent({ type: 'pointer-up', x: Math.round(e.clientX), y: Math.round(e.clientY), ts: Date.now(), pointerType: e.pointerType, element });
 }
 
 const ACTIVATABLE_SELECTOR =
@@ -135,7 +135,7 @@ function onKeyDown(e) {
   const rect    = el.getBoundingClientRect();
   const element = el.closest('[data-track]')?.dataset.track ?? null;
   pushEvent({
-    type:    'keydown',
+    type:    'key-down',
     key:     e.key === ' ' ? 'Space' : e.key,
     x:       Math.round(rect.left + rect.width / 2),
     y:       Math.round(rect.top + rect.height / 2),
@@ -162,16 +162,16 @@ function onSelectionChange() {
   });
 }
 
-function onDelegatedMouseOver(e) {
+function onDelegatedPointerOver(e) {
   const el = e.target.closest('[data-track]');
   if (!el) return;
   if (e.relatedTarget && el.contains(e.relatedTarget)) return;
   const key = el.dataset.track;
   hoverMap[key] = { startTime: Date.now(), startX: Math.round(e.clientX), startY: Math.round(e.clientY) };
-  pushEvent({ type: 'mouseover', element: key, x: Math.round(e.clientX), y: Math.round(e.clientY), ts: Date.now() });
+  pushEvent({ type: 'pointer-over', element: key, x: Math.round(e.clientX), y: Math.round(e.clientY), ts: Date.now(), pointerType: e.pointerType });
 }
 
-function onDelegatedMouseOut(e) {
+function onDelegatedPointerOut(e) {
   const el = e.target.closest('[data-track]');
   if (!el) return;
   if (e.relatedTarget && el.contains(e.relatedTarget)) return;
@@ -180,7 +180,7 @@ function onDelegatedMouseOut(e) {
   const { startTime } = hoverMap[key];
   delete hoverMap[key];
   const now = Date.now();
-  pushEvent({ type: 'mouseout', element: key, x: Math.round(e.clientX), y: Math.round(e.clientY), ts: now, duration: now - startTime });
+  pushEvent({ type: 'pointer-out', element: key, x: Math.round(e.clientX), y: Math.round(e.clientY), ts: now, pointerType: e.pointerType, duration: now - startTime });
 }
 
 const onScroll = throttle(() => {
@@ -228,30 +228,30 @@ const tracker = {
     hoverMap      = {};
     paused        = document.visibilityState === 'hidden';
 
-    document.addEventListener('mousemove',        onMouseMove);
-    document.addEventListener('mousedown',        onMouseDown);
-    document.addEventListener('mouseup',          onMouseUp);
+    document.addEventListener('pointermove',      onPointerMove);
+    document.addEventListener('pointerdown',      onPointerDown);
+    document.addEventListener('pointerup',        onPointerUp);
     document.addEventListener('keydown',          onKeyDown);
     document.addEventListener('selectionchange',  onSelectionChange);
     document.addEventListener('scroll',           onScroll, { passive: true });
     document.addEventListener('visibilitychange', onVisibilityChange);
-    document.addEventListener('mouseover',        onDelegatedMouseOver);
-    document.addEventListener('mouseout',         onDelegatedMouseOut);
+    document.addEventListener('pointerover',      onDelegatedPointerOver);
+    document.addEventListener('pointerout',       onDelegatedPointerOut);
 
     clearInterval(flushTimer);
     flushTimer = setInterval(flush, FLUSH_INTERVAL);
   },
 
   async stop() {
-    document.removeEventListener('mousemove',        onMouseMove);
-    document.removeEventListener('mousedown',        onMouseDown);
-    document.removeEventListener('mouseup',          onMouseUp);
+    document.removeEventListener('pointermove',      onPointerMove);
+    document.removeEventListener('pointerdown',      onPointerDown);
+    document.removeEventListener('pointerup',        onPointerUp);
     document.removeEventListener('keydown',          onKeyDown);
     document.removeEventListener('selectionchange',  onSelectionChange);
     document.removeEventListener('scroll',           onScroll);
     document.removeEventListener('visibilitychange', onVisibilityChange);
-    document.removeEventListener('mouseover',        onDelegatedMouseOver);
-    document.removeEventListener('mouseout',         onDelegatedMouseOut);
+    document.removeEventListener('pointerover',      onDelegatedPointerOver);
+    document.removeEventListener('pointerout',       onDelegatedPointerOut);
 
     clearInterval(flushTimer);
     await flush();
@@ -263,7 +263,7 @@ const tracker = {
    */
   recordSlider(value, selector = '.slider-bar', x = null, y = null, phase = 'drag') {
     pushEvent({
-      type:    'slider',
+      type:    'slider-change',
       element: selector,
       x:       x !== null ? Math.round(x) : 0,
       y:       y !== null ? Math.round(y) : 0,

@@ -7,9 +7,8 @@ module SurveyTracker
       class RecordEvents < ApplicationOperation
 
         VALID_EVENT_TYPES = %w[
-          mousemove mousedown mouseup keydown
-          highlight mouseover mouseout
-          scroll slider
+          pointer-move pointer-down pointer-up pointer-over pointer-out
+          key-down highlight scroll slider-change
         ].freeze
 
         def call(respondent_id:, events:)

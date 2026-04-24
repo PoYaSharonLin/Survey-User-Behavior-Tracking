@@ -9,7 +9,7 @@ Sequel.migration do
       foreign_key :survey_session_id, :survey_sessions, null: false, on_delete: :cascade
 
       # Event classification
-      String :event_type, null: false  # mousemove | click | highlight | hover | scroll | slider
+      String :event_type, null: false  # pointer-move | pointer-down | pointer-up | pointer-over | pointer-out | key-down | highlight | scroll | slider-change
 
       # Pixel-level coordinates
       Integer :x

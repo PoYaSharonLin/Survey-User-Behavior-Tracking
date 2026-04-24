@@ -14,9 +14,9 @@ describe 'Behavior Routes' do
     now_ms = (Time.now.utc.to_f * 1000).to_i
     payload = {
       events: [
-        { type: 'mousemove', x: 100, y: 200, ts: now_ms },
-        { type: 'keydown', key: 'Enter', x: 300, y: 150, ts: now_ms, element: 'submit-btn' },
-        { type: 'slider', x: 450, y: 350, ts: now_ms, element: '.native-slider-1', value: 5, phase: 'release' }
+        { type: 'pointer-move', x: 100, y: 200, ts: now_ms, pointerType: 'mouse' },
+        { type: 'key-down', key: 'Enter', x: 300, y: 150, ts: now_ms, element: 'submit-btn' },
+        { type: 'slider-change', x: 450, y: 350, ts: now_ms, element: 'q1-slider', value: 5, phase: 'release' }
       ]
     }
 
