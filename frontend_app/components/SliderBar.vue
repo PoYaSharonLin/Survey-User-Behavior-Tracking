@@ -57,8 +57,8 @@ export default {
 
   methods: {
     onPointerMove(e) {
-      this.pointerX = Math.round(e.clientX);
-      this.pointerY = Math.round(e.clientY);
+      this.pointerX = Math.round(e.pageX);
+      this.pointerY = Math.round(e.pageY);
     },
 
     onInput(e) {

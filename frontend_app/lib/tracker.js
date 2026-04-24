@@ -97,29 +97,29 @@ function throttle(fn, delay) {
 // ── DOM event handlers ────────────────────────────────────────────────────────
 
 const onPointerMove = (e) => {
-  const cx = Math.round(e.clientX);
-  const cy = Math.round(e.clientY);
+  const px = Math.round(e.pageX);
+  const py = Math.round(e.pageY);
 
   if (lastRecordedX !== null) {
-    const dx = cx - lastRecordedX;
-    const dy = cy - lastRecordedY;
+    const dx = px - lastRecordedX;
+    const dy = py - lastRecordedY;
     if (Math.sqrt(dx * dx + dy * dy) < MIN_DISTANCE) return;
   }
-  lastRecordedX = cx;
-  lastRecordedY = cy;
+  lastRecordedX = px;
+  lastRecordedY = py;
 
   const element = e.target.closest('[data-track]')?.dataset.track ?? null;
-  pushEvent({ type: 'pointer-move', x: cx, y: cy, ts: Date.now(), pointerType: e.pointerType, element });
+  pushEvent({ type: 'pointer-move', x: px, y: py, ts: Date.now(), pointerType: e.pointerType, element });
 };
 
 function onPointerDown(e) {
   const element = e.target.closest('[data-track]')?.dataset.track ?? null;
-  pushEvent({ type: 'pointer-down', x: Math.round(e.clientX), y: Math.round(e.clientY), ts: Date.now(), pointerType: e.pointerType, element });
+  pushEvent({ type: 'pointer-down', x: Math.round(e.pageX), y: Math.round(e.pageY), ts: Date.now(), pointerType: e.pointerType, element });
 }
 
 function onPointerUp(e) {
   const element = e.target.closest('[data-track]')?.dataset.track ?? null;
-  pushEvent({ type: 'pointer-up', x: Math.round(e.clientX), y: Math.round(e.clientY), ts: Date.now(), pointerType: e.pointerType, element });
+  pushEvent({ type: 'pointer-up', x: Math.round(e.pageX), y: Math.round(e.pageY), ts: Date.now(), pointerType: e.pointerType, element });
 }
 
 const ACTIVATABLE_SELECTOR =
@@ -137,8 +137,8 @@ function onKeyDown(e) {
   pushEvent({
     type:    'key-down',
     key:     e.key === ' ' ? 'Space' : e.key,
-    x:       Math.round(rect.left + rect.width / 2),
-    y:       Math.round(rect.top + rect.height / 2),
+    x:       Math.round(rect.left + window.scrollX + rect.width / 2),
+    y:       Math.round(rect.top + window.scrollY + rect.height / 2),
     ts:      Date.now(),
     element,
   });
@@ -154,8 +154,8 @@ function onSelectionChange() {
   const rect  = range.getBoundingClientRect();
   pushEvent({
     type:      'highlight',
-    x:         Math.round(rect.left),
-    y:         Math.round(rect.top),
+    x:         Math.round(rect.left + window.scrollX),
+    y:         Math.round(rect.top + window.scrollY),
     ts:        Date.now(),
     text,
     charCount: text.length,
@@ -167,8 +167,8 @@ function onDelegatedPointerOver(e) {
   if (!el) return;
   if (e.relatedTarget && el.contains(e.relatedTarget)) return;
   const key = el.dataset.track;
-  hoverMap[key] = { startTime: Date.now(), startX: Math.round(e.clientX), startY: Math.round(e.clientY) };
-  pushEvent({ type: 'pointer-over', element: key, x: Math.round(e.clientX), y: Math.round(e.clientY), ts: Date.now(), pointerType: e.pointerType });
+  hoverMap[key] = { startTime: Date.now(), startX: Math.round(e.pageX), startY: Math.round(e.pageY) };
+  pushEvent({ type: 'pointer-over', element: key, x: Math.round(e.pageX), y: Math.round(e.pageY), ts: Date.now(), pointerType: e.pointerType });
 }
 
 function onDelegatedPointerOut(e) {
@@ -180,7 +180,7 @@ function onDelegatedPointerOut(e) {
   const { startTime } = hoverMap[key];
   delete hoverMap[key];
   const now = Date.now();
-  pushEvent({ type: 'pointer-out', element: key, x: Math.round(e.clientX), y: Math.round(e.clientY), ts: now, pointerType: e.pointerType, duration: now - startTime });
+  pushEvent({ type: 'pointer-out', element: key, x: Math.round(e.pageX), y: Math.round(e.pageY), ts: now, pointerType: e.pointerType, duration: now - startTime });
 }
 
 const onScroll = throttle(() => {
