@@ -24,7 +24,7 @@
  * Usage:
  *   tracker.start(userId)   — begin tracking
  *   tracker.stop()          — flush remaining data and detach listeners
- *   tracker.getBinaryBlob() — encode fullHistory as SBEH binary (call before stop)
+ *   tracker.getBinaryBlob() — encode fullHistory as binary blob (call before stop)
  */
 
 import axios from 'axios';
@@ -353,9 +353,8 @@ const tracker = {
    * Encode the full session event history as a binary blob for S3 upload.
    *
    * Binary format:
-   *   Bytes 0–3  : Magic "SBEH"  (0x53 0x42 0x45 0x48)
-   *   Bytes 4–5  : uid length    (uint16, big-endian)
-   *   Bytes 6–N  : uid           (UTF-8 string)
+   *   Bytes 0–1  : uid length    (uint16, big-endian)
+   *   Bytes 2–N  : uid           (UTF-8 string)
    *   Bytes N+1… : msgpack-encoded Array of raw event objects
    *
    * Call this before tracker.stop() (while userId is still set).
@@ -365,15 +364,12 @@ const tracker = {
     const uidBytes = new TextEncoder().encode(uid);
     const payload  = msgpackEncode(fullHistory);
 
-    const result = new Uint8Array(4 + 2 + uidBytes.length + payload.length);
+    const result = new Uint8Array(2 + uidBytes.length + payload.length);
     const view   = new DataView(result.buffer);
 
-    result[0] = 0x53; result[1] = 0x42;
-    result[2] = 0x45; result[3] = 0x48;
-
-    view.setUint16(4, uidBytes.length, false);
-    result.set(uidBytes, 6);
-    result.set(payload, 6 + uidBytes.length);
+    view.setUint16(0, uidBytes.length, false);
+    result.set(uidBytes, 2);
+    result.set(payload, 2 + uidBytes.length);
 
     return result.buffer;
   },

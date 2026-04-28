@@ -188,7 +188,7 @@ Focus on:
   silently swallow the error). Is there a test-environment stub for S3?
 - **Zero frontend tests**: `tracker.js`, `session.js`, and `PostSurvey.vue` (including
   the 5-step submit flow) have no tests. The `getBinaryBlob()` binary format — with its
-  SBEH magic bytes, uid-length header, and msgpack payload — is completely untested.
+  uid-length header and msgpack payload — is completely untested.
   How would a format regression be detected?
 - **Singleton tracker resists unit testing**: `tracker.js` exports a module-level
   singleton with mutable state (`userId`, `rawQueue`, `fullHistory`, `hoverMap`).
@@ -249,8 +249,8 @@ Focus on:
   `localStorage`, and makes an HTTP request all in one function. Side effects are
   interleaved with data access, making it difficult to test the session-resolution logic
   independently from the network call.
-- **Binary format defined in the frontend only**: the SBEH format (magic bytes, uid-length
-  prefix, msgpack payload) is specified only in a `getBinaryBlob()` comment in
+- **Binary format defined in the frontend only**: the blob format (uint16 uid-length
+  prefix, uid bytes, msgpack payload) is specified only in a `getBinaryBlob()` comment in
   `tracker.js`. Any decoder (Python/R analysis script) must derive the spec from reading
   frontend JS. Is there a canonical format document that lives outside the frontend
   source?
@@ -269,10 +269,10 @@ Focus on:
   interval, why `MIN_DISTANCE = 1 px`, why page coordinates instead of viewport
   coordinates (this last one is in `DECISION.md` but not at the call site). Would an
   inline reference to `DECISION.md` help a future developer?
-- **SBEH binary format undocumented outside frontend**: the format is described only in
-  a JS comment. A Python/R researcher who needs to decode the S3 binary blob must read
-  the frontend source. Is there a language-neutral format spec (e.g. in `DECISION.md`
-  or a `docs/` file)?
+- **Binary blob format undocumented outside frontend**: the format (uint16 uid length,
+  uid bytes, msgpack payload) is described only in a JS comment. A Python/R researcher
+  who needs to decode the S3 binary blob must read the frontend source. Is there a
+  language-neutral format spec (e.g. in `DECISION.md` or a `docs/` file)?
 - **`DECISION.md` gap for the trajectory-era pivot**: the file documents the 2026-04-24
   refactor thoroughly, but the earlier and more significant pivot — from typed-column
   `behavior_events` → `trajectories` (compact JSON array per row) → back to

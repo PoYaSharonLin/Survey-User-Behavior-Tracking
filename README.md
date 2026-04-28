@@ -108,8 +108,8 @@ check what's there:
 # List all uploaded sessions
 aws s3 ls s3://amzn-s3-frontend-monitoring/behavior_data/
 
-# Download a specific session for local inspection
-aws s3 cp s3://amzn-s3-frontend-monitoring/behavior_data/<key> ./downloaded.bin
+# Download all sessions to data folder under current directory
+aws s3 sync s3://amzn-s3-frontend-monitoring/behavior_data/ ./data/
 ```
 
 ## Production
