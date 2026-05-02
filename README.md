@@ -121,6 +121,28 @@ CREATE EXTENSION IF NOT EXISTS timescaledb;
 SELECT create_hypertable('behavior_events', 'timestamp');
 ```
 
+## Debug Panel
+
+The live-event debug overlay (`DebugOverlay.vue`) is disabled by default. To re-enable it on the survey page:
+
+1. Open `frontend_app/pages/SurveyPage.vue`.
+2. In `<script>`, add the import:
+   ```js
+   import DebugOverlay from '@/components/DebugOverlay.vue';
+   ```
+3. Register the component:
+   ```js
+   components: { BehaviorTracker, SliderBar, DebugOverlay },
+   ```
+4. In `<template>`, add `<DebugOverlay />` as the first child of `.survey-wrapper` (before `<BehaviorTracker>`):
+   ```html
+   <div class="survey-wrapper" data-track="page-background">
+     <DebugOverlay />
+     <BehaviorTracker>
+   ```
+
+The overlay renders in the bottom-right corner, shows up to 200 live tracking events, and can be cleared or dismissed via its own buttons.
+
 ## Key Dependencies
 
 **Backend:**

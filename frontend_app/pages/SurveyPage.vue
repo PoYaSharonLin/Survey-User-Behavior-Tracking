@@ -1,6 +1,5 @@
 <template>
   <div class="survey-wrapper" data-track="page-background">
-    <DebugOverlay />
     <BehaviorTracker>
       <div class="survey-page">
         <!-- Header -->
@@ -49,9 +48,13 @@
 
           <!-- Next -->
           <div class="submit-row">
+            <p v-if="!allConfirmed" class="validation-hint">
+              請確認所有題目後再繼續（已確認 {{ confirmedCount }}/{{ questions.length }} 題）
+            </p>
             <button
               class="submit-btn"
               data-track="survey-next"
+              :disabled="!allConfirmed"
               @click="goNext"
             >
               下一頁
@@ -71,13 +74,12 @@
 <script>
 import BehaviorTracker from '@/components/BehaviorTracker.vue';
 import SliderBar       from '@/components/SliderBar.vue';
-import DebugOverlay    from '@/components/DebugOverlay.vue';
 import session         from '@/lib/session';
 
 export default {
   name: 'SurveyPage',
 
-  components: { BehaviorTracker, SliderBar, DebugOverlay },
+  components: { BehaviorTracker, SliderBar },
 
   data() {
     return {
@@ -140,8 +142,18 @@ export default {
     },
   },
 
+  computed: {
+    confirmedCount() {
+      return this.confirmedQuestions.filter(Boolean).length;
+    },
+    allConfirmed() {
+      return this.confirmedQuestions.every(Boolean);
+    },
+  },
+
   methods: {
     goNext() {
+      if (!this.allConfirmed) return;
       sessionStorage.setItem('survey_answers_v1', JSON.stringify({
         dietary: this.answers.dietary,
       }));
@@ -356,6 +368,13 @@ export default {
 .submit-btn:disabled {
   opacity: 0.6;
   cursor: default;
+}
+
+.validation-hint {
+  margin-bottom: 12px;
+  color: #e57373;
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
 .no-uid-notice {

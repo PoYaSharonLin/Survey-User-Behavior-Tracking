@@ -43,10 +43,13 @@
           </div>
 
           <div class="submit-row">
+            <p v-if="!allConfirmed && !submitted" class="validation-hint">
+              請確認所有題目後再提交（已確認 {{ confirmedCount }}/{{ questions.length }} 題）
+            </p>
             <button
               class="submit-btn"
               data-track="postsurvey-submit"
-              :disabled="submitting || submitted"
+              :disabled="submitting || submitted || !allConfirmed"
               @click="submit"
             >
               {{ submitted ? '問卷提交成功，請關閉頁面，謝謝您。' : '提交問卷' }}
@@ -102,13 +105,22 @@ export default {
     this.userId = await session.init();
   },
 
+  computed: {
+    confirmedCount() {
+      return this.confirmedQuestions.filter(Boolean).length;
+    },
+    allConfirmed() {
+      return this.confirmedQuestions.every(Boolean);
+    },
+  },
+
   methods: {
     toggleConfirm(index) {
       this.confirmedQuestions[index] = !this.confirmedQuestions[index];
     },
 
     async submit() {
-      if (this.submitting || this.submitted) return;
+      if (this.submitting || this.submitted || !this.allConfirmed) return;
       this.errorMsg   = '';
       this.submitting = true;
 
@@ -360,6 +372,13 @@ export default {
 .submit-btn:disabled {
   opacity: 0.6;
   cursor: default;
+}
+
+.validation-hint {
+  margin-bottom: 12px;
+  color: #e57373;
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
 .error-msg {
