@@ -90,14 +90,12 @@ export default {
       submitted:  false,
       errorMsg:   '',
       questions: [
-        { text: '對你而言，做哪一件事比較重要？', minLabel: '我有責任去做的事', maxLabel: '我希望實現的事' },
-        { text: '你先前閱讀本簡短研究指示時的專注程度如何？', minLabel: '非常不專注', maxLabel: '非常專注' },
-        { text: '你在回答健康問題時的專注程度如何？', minLabel: '非常不專注', maxLabel: '非常專注' },
-        { text: '你今天整個實驗過程中的專注程度如何？', minLabel: '非常不專注', maxLabel: '非常專注' },
-        { text: '我能夠在整個過程中對所有任務保持充分的注意力。', minLabel: '無法保持注意力', maxLabel: '一直保持注意力' },
+        { text: '你的好友在回答這份問卷時多有可能謊報？',   minLabel: '非常可能謊報', maxLabel: '非常不可能謊報' },
+        { text: '一般受測者在回答這份問卷時多有可能謊報？', minLabel: '非常可能謊報', maxLabel: '非常不可能謊報' },
+        { text: '你剛才在回答這份問卷時多有可能謊報？',     minLabel: '非常可能謊報', maxLabel: '非常不可能謊報' },
       ],
-      answers: Array(5).fill(1),
-      confirmedQuestions: Array(5).fill(false),
+      answers: Array(3).fill(1),
+      confirmedQuestions: Array(3).fill(false),
     };
   },
 
