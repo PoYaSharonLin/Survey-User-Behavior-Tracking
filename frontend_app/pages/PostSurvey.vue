@@ -1,8 +1,8 @@
 <template>
-  <div class="survey-wrapper">
+  <div class="survey-wrapper" data-track="page-background">
     <BehaviorTracker>
       <div class="survey-page">
-        <header class="survey-header">
+        <header class="survey-header" data-track="page-header">
           <h1 class="survey-title">後測問卷</h1>
           <p class="survey-subtitle warning" v-if="!userId">
             ⚠ 未找到使用者 ID。請使用提供的連結進入此頁面。
@@ -10,13 +10,13 @@
         </header>
 
         <main v-if="userId" class="survey-body">
-          <section class="intro-section">
+          <section class="intro-section" data-track="page-intro">
             <h2>最後幾個問題</h2>
             <p>請根據您的感受，使用滑桿作答（1 為最低，7 為最高）。</p>
           </section>
 
           <div v-for="(q, index) in questions" :key="index" class="survey-section" :data-track="'pq' + (index + 1) + '-element'">
-            <label class="question-label">({{ index + 1 }}) {{ q.text }} *</label>
+            <label class="question-label" :data-track="'pq' + (index + 1) + '-label'">({{ index + 1 }}) {{ q.text }} *</label>
             <div class="slider-container">
               <SliderBar
                 v-model="answers[index]"
