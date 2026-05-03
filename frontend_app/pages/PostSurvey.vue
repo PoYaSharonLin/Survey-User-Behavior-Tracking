@@ -207,6 +207,8 @@ export default {
           'https://moonbear.herokuapp.com/onlinesurvey/f922a475-4ef3-4d3a-992d-996b507f732c/a9c757d3-b80d-419c-a56d-1c9cc0d016a0'
         );
         moonbearUrl.searchParams.set('uid', this.userId);
+        const condition = session.getCondition();
+        if (condition) moonbearUrl.searchParams.set('condition', condition);
         window.location.href = moonbearUrl.toString();
       } catch (err) {
         console.error('[postsurvey submit] error:', err);

@@ -11,6 +11,7 @@ import axios from 'axios';
 
 const USER_ID_KEY    = 'survey_user_id';
 const ORIG_URL_KEY   = 'survey_original_url';
+const CONDITION_KEY  = 'survey_condition';
 
 const session = {
   /**
@@ -19,12 +20,16 @@ const session = {
    * Returns the user_id string or null if none found.
    */
   async init() {
-    const params = new URLSearchParams(window.location.search);
-    const urlUid = params.get('uid');
+    const params  = new URLSearchParams(window.location.search);
+    const urlUid  = params.get('uid');
+    const urlCond = params.get('condition');
 
     if (urlUid) {
       localStorage.setItem(USER_ID_KEY, urlUid);
       localStorage.setItem(ORIG_URL_KEY, window.location.href);
+    }
+    if (urlCond) {
+      localStorage.setItem(CONDITION_KEY, urlCond);
     }
 
     const userId = this.getUserId();
@@ -40,6 +45,7 @@ const session = {
           referrer:        document.referrer,
           viewport_width:  window.innerWidth,
           viewport_height: window.innerHeight,
+          condition:       this.getCondition(),
         },
       });
 
@@ -57,6 +63,10 @@ const session = {
     return localStorage.getItem(USER_ID_KEY) || null;
   },
 
+  getCondition() {
+    return localStorage.getItem(CONDITION_KEY) || null;
+  },
+
   getShareUrl() {
     return localStorage.getItem('survey_share_url') || null;
   },
@@ -64,6 +74,7 @@ const session = {
   clear() {
     localStorage.removeItem(USER_ID_KEY);
     localStorage.removeItem(ORIG_URL_KEY);
+    localStorage.removeItem(CONDITION_KEY);
     localStorage.removeItem('survey_share_url');
   },
 };
