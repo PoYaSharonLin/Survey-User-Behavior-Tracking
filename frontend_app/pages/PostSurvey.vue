@@ -52,7 +52,7 @@
               :disabled="submitting || submitted || !allConfirmed"
               @click="submit"
             >
-              {{ submitted ? '問卷提交成功，請關閉頁面，謝謝您。' : '提交問卷' }}
+              前往最後一份問卷
             </button>
             <p v-if="errorMsg" class="error-msg">{{ errorMsg }}</p>
           </div>
@@ -202,6 +202,12 @@ export default {
         }
 
         this.submitted = true;
+
+        const moonbearUrl = new URL(
+          'https://moonbear.herokuapp.com/onlinesurvey/f922a475-4ef3-4d3a-992d-996b507f732c/a9c757d3-b80d-419c-a56d-1c9cc0d016a0'
+        );
+        moonbearUrl.searchParams.set('uid', this.userId);
+        window.location.href = moonbearUrl.toString();
       } catch (err) {
         console.error('[postsurvey submit] error:', err);
         const elapsed = Date.now() - startedAt;
