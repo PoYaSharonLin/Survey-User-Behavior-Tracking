@@ -3,7 +3,6 @@
 require 'roda'
 require 'json'
 require_relative '../../infrastructure/database/orm/survey_session'
-require_relative '../../infrastructure/database/orm/behavior_event'
 require_relative './routes/survey'
 require_relative './routes/behavior'
 require 'rack/ssl-enforcer'

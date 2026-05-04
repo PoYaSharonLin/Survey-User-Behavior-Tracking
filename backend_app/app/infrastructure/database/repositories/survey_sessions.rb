@@ -30,11 +30,20 @@ module SurveyTracker
           session
         end
 
-        def update_s3_key(respondent_id:, s3_key:)
+        # Called after a successful S3 upload — records the key and marks the session done.
+        def mark_completed(respondent_id:, s3_key:)
           session = find_by_respondent_id(respondent_id)
           return nil unless session
 
-          session.update(s3_key:)
+          session.update(s3_key:, status: 'completed')
+          session
+        end
+
+        def update_status(respondent_id:, status:)
+          session = find_by_respondent_id(respondent_id)
+          return nil unless session
+
+          session.update(status:)
           session
         end
       end

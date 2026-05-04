@@ -5,10 +5,9 @@ require 'dry/monads'
 
 module SurveyTracker
   module Routes
-    # Behavior trajectory routes:
-    #   POST /api/behavior/:respondent_id/events          → record a batch of trajectories
+    # Behavior data routes:
     #   GET  /api/behavior/:respondent_id/presigned-url   → get a presigned PUT URL for direct S3 upload
-    #   POST /api/behavior/:respondent_id/confirm-upload  → save the S3 key after a successful upload
+    #   POST /api/behavior/:respondent_id/confirm-upload  → save the S3 key and mark session completed
     #   GET  /api/behavior/:respondent_id/download-url    → get a presigned GET URL for downloading the object
     class Behavior < Roda
       include Dry::Monads[:result]
@@ -20,32 +19,6 @@ module SurveyTracker
         response['Content-Type'] = 'application/json'
 
         r.on String do |respondent_id|
-
-          r.on 'events' do
-            # POST /api/behavior/:respondent_id/events
-            # Body: { "events": [ { "type": "mousemove"|"keydown"|..., "x": N, "y": N, "ts": N, ...extras }, ... ] }
-            r.post do
-              body   = JSON.parse(r.body.read, symbolize_names: true)
-              events = body[:events]
-
-              unless events.is_a?(Array)
-                response.status = 400
-                next({ error: 'events must be a JSON array' }.to_json)
-              end
-
-              case Service::BehaviorEvents::RecordEvents.new.call(respondent_id:, events:)
-              in Success(api_result)
-                response.status = api_result.http_status_code
-                { success: true, message: api_result.message }.to_json
-              in Failure(api_result)
-                response.status = api_result.http_status_code
-                api_result.to_json
-              end
-            rescue JSON::ParserError => e
-              response.status = 400
-              { error: 'Invalid JSON', details: e.message }.to_json
-            end
-          end
 
           # GET /api/behavior/:respondent_id/presigned-url
           # Returns a short-lived (10 min) presigned PUT URL for the frontend to upload
@@ -67,7 +40,7 @@ module SurveyTracker
           # POST /api/behavior/:respondent_id/confirm-upload
           # Body: { "key": "behavior_data/abc123_1712345678.bin" }
           # Called by the frontend after the S3 PUT succeeds. Persists the S3 key
-          # against the user's session so it can be retrieved later.
+          # and marks the session as completed.
           r.on 'confirm-upload' do
             r.post do
               body = JSON.parse(r.body.read, symbolize_names: true)
@@ -78,7 +51,7 @@ module SurveyTracker
                 next({ error: 'key is required' }.to_json)
               end
 
-              session = Database::Repository::SurveySessions.new.update_s3_key(
+              session = Database::Repository::SurveySessions.new.mark_completed(
                 respondent_id:,
                 s3_key: key
               )

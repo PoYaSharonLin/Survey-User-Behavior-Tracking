@@ -2,7 +2,7 @@
  * tracker.js
  *
  * Raw event tracker — records every user interaction as individual events
- * and flushes them to the backend every FLUSH_INTERVAL ms.
+ * accumulated in memory and exported as a binary blob at submit time.
  *
  * Event types recorded:
  *   pointer-move      { type, x, y, ts, pointerType, element }
@@ -27,16 +27,15 @@
  *
  * Usage:
  *   tracker.start(userId)        — begin tracking
- *   tracker.stop()               — flush remaining data and detach listeners
+ *   tracker.stop()               — detach listeners; call getBinaryBlob() before this
  *   tracker.recordMetadata(obj)  — push a metadata event (e.g. viewport, element-rect)
  *   tracker.getBinaryBlob()      — encode fullHistory as binary blob (call before stop)
  */
 
-import axios from 'axios';
 import { encode as msgpackEncode } from '@msgpack/msgpack';
 
-const FLUSH_INTERVAL = 100;  // ms — periodic flush cadence
-const MIN_DISTANCE   = 1;    // px — minimum movement to record a pointer-move sample
+const MIN_DISTANCE    = 1;    // px — minimum movement to record a pointer-move sample
+const PERSIST_INTERVAL = 100; // ms — localStorage save cadence
 
 // ── LocalStorage persistence ──────────────────────────────────────────────────
 
@@ -67,34 +66,15 @@ let lastRecordedY = null;
 let lastScrollY   = window.scrollY;
 let hoverMap      = {};
 
-let rawQueue    = [];   // events pending flush to DB
-let fullHistory = [];   // all events (for binary export), persisted across refreshes
-let flushTimer  = null;
-let paused      = false;
+let fullHistory  = [];   // all events (for binary export), persisted across refreshes
+let persistTimer = null;
+let paused       = false;
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
 function pushEvent(evt) {
-  rawQueue.push(evt);
   fullHistory.push(evt);
   if (tracker.onEvent) tracker.onEvent(evt);
-}
-
-async function flush() {
-  if (paused) return;
-  if (!userId || rawQueue.length === 0) return;
-
-  const batch = rawQueue.splice(0);
-  try {
-    await axios.post(
-      `/api/behavior/${encodeURIComponent(userId)}/events`,
-      { events: batch }
-    );
-    savePersistedHistory(userId, fullHistory);
-  } catch (err) {
-    console.warn('[tracker] flush failed, re-queuing:', err.message);
-    rawQueue.unshift(...batch);
-  }
 }
 
 function throttle(fn, delay) {
@@ -235,7 +215,7 @@ const onScroll = throttle(() => {
     scrollY:   currentY,
     direction,
   });
-}, FLUSH_INTERVAL);
+}, 100);
 
 function onVisibilityChange() {
   const visibilityState = document.visibilityState;
@@ -249,8 +229,8 @@ function onVisibilityChange() {
   if (visibilityState === 'hidden') {
     paused = true;
   } else {
-    paused      = false;
-    lastScrollY = window.scrollY;
+    paused        = false;
+    lastScrollY   = window.scrollY;
     lastRecordedX = null;
     lastRecordedY = null;
   }
@@ -282,7 +262,6 @@ const tracker = {
       return;
     }
     userId        = uid;
-    rawQueue      = [];
     fullHistory   = loadPersistedHistory(uid);
     lastRecordedX = null;
     lastRecordedY = null;
@@ -305,11 +284,11 @@ const tracker = {
     window.addEventListener('pageshow',           onPageShow);
     window.addEventListener('pagehide',           onPageHide);
 
-    clearInterval(flushTimer);
-    flushTimer = setInterval(flush, FLUSH_INTERVAL);
+    clearInterval(persistTimer);
+    persistTimer = setInterval(() => savePersistedHistory(userId, fullHistory), PERSIST_INTERVAL);
   },
 
-  async stop() {
+  stop() {
     document.removeEventListener('pointermove',      onPointerMove);
     document.removeEventListener('pointerdown',      onPointerDown);
     document.removeEventListener('pointerup',        onPointerUp);
@@ -325,8 +304,8 @@ const tracker = {
     window.removeEventListener('pageshow',           onPageShow);
     window.removeEventListener('pagehide',           onPageHide);
 
-    clearInterval(flushTimer);
-    await flush();
+    clearInterval(persistTimer);
+    if (userId) savePersistedHistory(userId, fullHistory);
     userId = null;
   },
 

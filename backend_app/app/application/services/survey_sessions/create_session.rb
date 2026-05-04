@@ -17,27 +17,16 @@ module SurveyTracker
           )
 
           session = Domain::SurveySessions::SurveySession.new(
-            id:             session_record.id,
-            respondent_id:  session_record.respondent_id,
-            original_url:   session_record.original_url,
-            started_at:   session_record.started_at,
-            ended_at:     session_record.ended_at,
-            metadata:     session_record.metadata,
-            created_at:   session_record.created_at,
-            updated_at:   session_record.updated_at
+            id:            session_record.id,
+            respondent_id: session_record.respondent_id,
+            original_url:  session_record.original_url,
+            started_at:    session_record.started_at,
+            ended_at:      session_record.ended_at,
+            status:        session_record.status,
+            metadata:      session_record.metadata,
+            created_at:    session_record.created_at,
+            updated_at:    session_record.updated_at
           )
-
-          # If metadata is present (submission), upload behavioral data to S3
-          if metadata
-            begin
-              repo   = Database::Repository::BehaviorEvents.new
-              events = repo.list_by_session(survey_session_id: session.id)
-              Infrastructure::S3Service.new.upload_session_data(respondent_id, events)
-            rescue StandardError => e
-              # Log but don't fail the session creation/update
-              puts "[S3 Export Failed] #{e.message}"
-            end
-          end
 
           Success(created(session))
         rescue StandardError => e
