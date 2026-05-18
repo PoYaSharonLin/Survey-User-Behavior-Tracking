@@ -49,7 +49,7 @@ export default {
       sessionStorage.setItem('consultation_reminder_done', '1');
       const uid = session.getUserId();
       const query = uid ? `?uid=${encodeURIComponent(uid)}` : '';
-      this.$router.push(`/practice${query}`);
+      this.$router.push(`/survey${query}`);
     },
   },
 };

@@ -174,7 +174,7 @@
     "sliderInstructions": [
       "On the next page, please adjust the slider according to your level of agreement with the statements.",
       "You must use the slider to answer the questions.",
-      "If your answer aligns with the initial position of the slider, please move it slightly and then back to the initial position to help the system recognize that you have responded."
+      "If your answer matches the slider's initial position, please tap on that position so the system can recognize that you have responded."
     ],
     "imageAlt": "Doctor with stethoscope holding a tablet across from a patient"
   },

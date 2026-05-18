@@ -1,5 +1,5 @@
 <template>
-  <div v-if="show" class="lang-toggle" :aria-label="$t('langToggle.ariaLabel')">
+  <div class="lang-toggle" :aria-label="$t('langToggle.ariaLabel')">
     <button
       type="button"
       class="lang-btn"
@@ -16,13 +16,10 @@
 </template>
 
 <script>
-import { IS_DEV, setLocale } from '@/lib/i18n';
+import { setLocale } from '@/lib/i18n';
 
 export default {
   name: 'LangToggle',
-  data() {
-    return { show: IS_DEV };
-  },
   methods: {
     pick(loc) {
       setLocale(loc);
