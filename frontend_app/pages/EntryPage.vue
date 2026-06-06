@@ -11,6 +11,7 @@ import { isMobileOrTablet } from '@/lib/device';
 
 const PRE_SURVEY_URL = 'https://www.surveycake.com/s/mYWoK';
 const USER_ID_KEY = 'survey_user_id';
+const CONDITION_KEY = 'survey_condition';
 
 export default {
   name: 'EntryPage',
@@ -28,6 +29,10 @@ export default {
       const { data } = await axios.post('/api/assignment/next', { respondent_id: uid });
       const condition = data?.data?.condition;
       if (!condition) throw new Error('Missing condition in response');
+
+      // Persist the assigned condition now, so the flow survives a redirect
+      // back from the external survey tool that carries no ?condition param.
+      localStorage.setItem(CONDITION_KEY, condition);
 
       const url = new URL(PRE_SURVEY_URL);
       url.searchParams.set('uid', uid);
