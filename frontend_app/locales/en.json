@@ -83,7 +83,6 @@
   "severity": {
     "title": "Self-Reporting in Practice",
     "woEO": {
-      "framing": "Self-reporting plays out across many small moments in everyday life — a logged meal, a noted symptom, a recalled walk. On the next page, we'll look at the tools that help people do this consistently and accurately.",
       "heading": "Self-Reporting Tools",
       "intro": "Here are some popular methods used worldwide for self-reporting:",
       "tools": [
@@ -131,7 +130,7 @@
 
   "doctorPreference": {
     "title": "Doctor Preferences",
-    "lead":  "What type of doctors are you looking for regarding {disease}? Please provide your preferences, and we will recommend suitable doctors from our network.",
+    "lead":  "What type of doctors are you looking for? Please provide your preferences, and we will recommend suitable doctors from our network.",
     "questions": [
       {
         "key": "style",
@@ -151,7 +150,7 @@
       },
       {
         "key": "info",
-        "text": "What specific information about {disease} would you like to know more about?",
+        "text": "What specific information would you like to know more about?",
         "options": [
           { "value": "causes",     "label": "Causes of the condition"  },
           { "value": "preventive", "label": "Subsequent preventive advice" }
@@ -163,7 +162,7 @@
 
   "doctorRecommendation": {
     "title": "Based on your preferences, we recommend Dr. Zhang for your treatment",
-    "body":  "During Dr. Zhang's leisured consultation, she will provide medication for treating {disease}, guidance on preventive measures in daily life, and information about causes of the condition.",
+    "body":  "During Dr. Zhang's leisured consultation, she will provide medication for treating your condition, guidance on preventive measures in daily life, and information about causes of the condition.",
     "note":  "{b1}: Dr. Zhang emphasizes a {b2} approach, and she may have {b3} regarding your lifestyle habits. It is preferred that you have already made some improvements in your diet and lifestyle habits before seeking treatment, to avoid {b4}.",
     "noteStrong": {
       "b1": "Please note",
@@ -185,9 +184,9 @@
 
   "consultationReminder": {
     "title": "Initial Consultation Reminder: Report your dietary behaviors over the past week.",
-    "intro": "On the next page, please provide your {strong} to facilitate Dr. Zhang's assessment of your {disease} issue.",
+    "intro": "On the next page, please provide your {strong} to facilitate Dr. Zhang's assessment of your condition.",
     "introStrong": "dietary behaviors in the past week",
-    "explain": "Afterward, Dr. Zhang will evaluate whether your dietary behaviors can {strong} your {disease} based on your answers.",
+    "explain": "Afterward, Dr. Zhang will evaluate whether your dietary behaviors can {strong} your condition based on your answers.",
     "explainStrong": "improve or worsen",
     "sliderLead": "On the next page, please adjust the slider according to your level of agreement with the statements.",
     "sliderInstructions": [
@@ -223,23 +222,27 @@
     "title": "Dietary Behavior Survey",
     "uidWarning": "⚠ User ID not found. Please enter this page via the provided link.",
     "intro": {
-      "h2": "Report your dietary behavior over the past week",
-      "p": "Please use the slider to indicate your level of agreement with each statement (1 = lowest, 7 = highest)."
+      "h2": "Report your dietary behaviors over the past week",
+      "lead": "Please report your dietary behavior in the past week. Dr. Zhang will assess your dietary behavior based on your answers and determine whether it can improve or worsen your condition.",
+      "importantLine1": "Important! Adjust the slider according to your level of agreement with the statements.",
+      "importantLine2": "You must use the slider to answer the questions.",
+      "importantLine3": "If your answer aligns with the initial position of the slider, {strong}.",
+      "importantStrong": "please tap on that position so the system can recognize that you have responded"
     },
     "validationHint": "Please confirm all items before continuing ({done}/{total} confirmed)",
     "questions": [
-      { "text": "In the past week, did you eat three meals regularly?", "minLabel": "I never ate three meals regularly in the past seven days", "maxLabel": "I ate three meals regularly every day in the past seven days" },
-      { "text": "In the past week, did you eat candy or snacks?", "minLabel": "I ate candy or snacks every day in the past seven days", "maxLabel": "I never ate candy or snacks in the past seven days" },
-      { "text": "In the past week, did you chew your food thoroughly, chewing at least 20 times per bite before swallowing?", "minLabel": "I never chewed my food thoroughly before swallowing in the past seven days", "maxLabel": "I chewed at least 20 times per bite in the past seven days" },
-      { "text": "In the past week, when you were thirsty or it was hot, did you drink unhealthy beverages (sugary or alcoholic) besides plain water?", "minLabel": "I drank unhealthy beverages every day in the past seven days", "maxLabel": "I drank only plain water in the past seven days" },
-      { "text": "In the past week, did you eat fried or greasy foods (e.g., peanuts, chips, fried chicken)?", "minLabel": "I ate fried foods every day in the past seven days", "maxLabel": "I never ate fried foods in the past seven days" },
-      { "text": "In the past week, did you eat fruit every day?", "minLabel": "I never ate fruit in the past seven days", "maxLabel": "I ate fruit every day in the past seven days" },
-      { "text": "In the past week, did you eat green vegetables every day?", "minLabel": "I never ate green vegetables in the past seven days", "maxLabel": "I ate green vegetables every day in the past seven days" },
-      { "text": "In the past week, did you eat late-night snacks every day?", "minLabel": "I ate late-night snacks every day in the past seven days", "maxLabel": "I never ate late-night snacks in the past seven days" },
-      { "text": "In the past week, did you eat while watching TV or using a tablet, phone, or computer?", "minLabel": "I was distracted while eating in the past seven days", "maxLabel": "I focused on eating in the past seven days" },
-      { "text": "In the past week, when you were in a bad mood, did you eat to make yourself feel better?", "minLabel": "I ate to improve my mood every time in the past seven days", "maxLabel": "I never ate to improve my mood in the past seven days" },
-      { "text": "In the past week, did you use food as a reward or as a way to celebrate?", "minLabel": "I used food as a reward every time in the past seven days", "maxLabel": "I never used food as a reward in the past seven days" },
-      { "text": "In the past week, did you wait until you were very hungry to go grocery shopping?", "minLabel": "I always waited until I was very hungry to shop in the past seven days", "maxLabel": "I never waited until I was very hungry to shop in the past seven days" }
+      { "text": "Did you eat three meals regularly in the last week?", "minLabel": "I never ate three meals regularly in the past seven days", "maxLabel": "I ate three meals regularly every day in the past seven days" },
+      { "text": "Did you eat sweets or snacks last week?", "minLabel": "I ate candy or snacks every day in the past seven days", "maxLabel": "I never ate candy or snacks in the past seven days" },
+      { "text": "Did you chew your food at least twenty times before swallowing each bite in the last week?", "minLabel": "I never chewed my food thoroughly before swallowing in the past seven days", "maxLabel": "I chewed at least 20 times per bite in the past seven days" },
+      { "text": "When thirsty or hot, did you only drink plain water, or drink unhealthy beverages (containing sugar or alcohol)?", "minLabel": "I drank unhealthy beverages every day in the past seven days", "maxLabel": "I drank only plain water in the past seven days" },
+      { "text": "Did you eat fried or oily foods (such as peanuts, potato chips, fried chicken, etc.) in the last week?", "minLabel": "I ate fried foods every day in the past seven days", "maxLabel": "I never ate fried foods in the past seven days" },
+      { "text": "Did you eat fruit every day in the last week?", "minLabel": "I never ate fruit in the past seven days", "maxLabel": "I ate fruit every day in the past seven days" },
+      { "text": "Did you eat green vegetables every day in the last week?", "minLabel": "I never ate green vegetables in the past seven days", "maxLabel": "I ate green vegetables every day in the past seven days" },
+      { "text": "Did you eat late-night snacks in the last week?", "minLabel": "I ate late-night snacks every day in the past seven days", "maxLabel": "I never ate late-night snacks in the past seven days" },
+      { "text": "While eating, did you distract yourself watching TV or using your phone/iPad in the last week?", "minLabel": "I was distracted while eating in the past seven days", "maxLabel": "I focused on eating in the past seven days" },
+      { "text": "Did you use food to improve your mood when you were feeling down in the past week?", "minLabel": "I ate to improve my mood every time in the past seven days", "maxLabel": "I never ate to improve my mood in the past seven days" },
+      { "text": "Did you use food as a way to reward yourself or celebrate in the last week?", "minLabel": "I used food as a reward every time in the past seven days", "maxLabel": "I never used food as a reward in the past seven days" },
+      { "text": "Did you wait until you were very hungry before going to the store to buy food last week?", "minLabel": "I always waited until I was very hungry to shop in the past seven days", "maxLabel": "I never waited until I was very hungry to shop in the past seven days" }
     ]
   },
 
@@ -256,6 +259,16 @@
       "question": "Question",
       "score": "Score",
       "bar": "Response"
+    },
+    "suggestions": {
+      "title": "Suggestions",
+      "intro": "You can now view the recommendations that are relevant to your score.",
+      "items": [
+        { "range": "If your score for food behavior is 0–36",   "body": "Oh no! Your dietary behavior is extremely poor. I recommend that you make a commitment to change your food behavior." },
+        { "range": "If your score for food behavior is 37–60",  "body": "Don't rest on your laurels. Please make an effort to change your dietary habits." },
+        { "range": "If your score for food behavior is 61–90",  "body": "Although you are doing slightly better, don't rest on your laurels. Please make an effort to change your dietary habits." },
+        { "range": "If your score for food behavior is 91–108", "body": "You're amazing! Keep up the good work and you'll be able to achieve good health easily!" }
+      ]
     },
     "postIntro": {
       "h2": "Final Questions",

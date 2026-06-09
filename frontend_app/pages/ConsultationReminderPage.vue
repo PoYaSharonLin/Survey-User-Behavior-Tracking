@@ -14,7 +14,6 @@
       scope="global"
       data-track="consult-intro"
     >
-      <template #disease>{{ diseaseName }}</template>
       <template #strong><strong>{{ $t('consultationReminder.introStrong') }}</strong></template>
     </i18n-t>
     <i18n-t
@@ -24,7 +23,6 @@
       scope="global"
       data-track="consult-explain"
     >
-      <template #disease>{{ diseaseName }}</template>
       <template #strong><strong class="hl-red">{{ $t('consultationReminder.explainStrong') }}</strong></template>
     </i18n-t>
 
@@ -51,10 +49,6 @@ export default {
   name: 'ConsultationReminderPage',
   components: { ContentLayout },
   computed: {
-    diseaseName() {
-      const key = session.getDisease();
-      return key ? this.$t(`diseases.${key}`) : '';
-    },
     image() {
       const cond = session.getCondition();
       return cond ? getAssets(cond).initialConsultation : '';

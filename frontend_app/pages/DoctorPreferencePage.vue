@@ -63,12 +63,8 @@ export default {
     },
   },
   computed: {
-    diseaseName() {
-      const key = session.getDisease();
-      return key ? this.$t(`diseases.${key}`) : '';
-    },
     leadText() {
-      return this.interpolate(this.$t('doctorPreference.lead'));
+      return this.$t('doctorPreference.lead');
     },
     questions() {
       return this.$tm('doctorPreference.questions').map(q => ({
@@ -85,9 +81,6 @@ export default {
     },
   },
   methods: {
-    interpolate(s) {
-      return s.replace(/\{disease\}/g, this.diseaseName);
-    },
     goNext() {
       if (!this.allAnswered) return;
       sessionStorage.setItem('doctor_preference_done', '1');

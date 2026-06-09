@@ -46,12 +46,8 @@ export default {
   name: 'DoctorRecommendationPage',
   components: { ContentLayout },
   computed: {
-    diseaseName() {
-      const key = session.getDisease();
-      return key ? this.$t(`diseases.${key}`) : '';
-    },
     bodyText() {
-      return this.$t('doctorRecommendation.body').replace(/\{disease\}/g, this.diseaseName);
+      return this.$t('doctorRecommendation.body');
     },
     reminderStrongs() {
       return this.$tm('doctorRecommendation.reminderStrong').map(s => this.$rt(s));

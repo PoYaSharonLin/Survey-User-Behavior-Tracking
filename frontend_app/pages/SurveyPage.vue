@@ -12,9 +12,23 @@
 
         <!-- Survey body -->
         <main v-if="userId" class="survey-body">
+          <img
+            :src="image"
+            :alt="$t('consultationReminder.imageAlt')"
+            class="survey-image"
+            data-track="survey-image"
+          />
+
           <section class="intro-section" data-track="page-intro">
-            <h2>{{ $t('survey.intro.h2') }}</h2>
-            <p>{{ $t('survey.intro.p') }}</p>
+            <h2 class="intro-h2">{{ $t('survey.intro.h2') }}</h2>
+            <p class="intro-lead">{{ $t('survey.intro.lead') }}</p>
+            <div class="intro-important">
+              <p>{{ $t('survey.intro.importantLine1') }}</p>
+              <p>{{ $t('survey.intro.importantLine2') }}</p>
+              <i18n-t keypath="survey.intro.importantLine3" tag="p" scope="global">
+                <template #strong><strong>{{ $t('survey.intro.importantStrong') }}</strong></template>
+              </i18n-t>
+            </div>
           </section>
 
           <div v-for="(q, index) in questions" :key="index" class="survey-section" :data-track="'q' + (index + 1) + '-element'">
@@ -78,6 +92,7 @@
 import BehaviorTracker from '@/components/BehaviorTracker.vue';
 import SliderBar       from '@/components/SliderBar.vue';
 import session         from '@/lib/session';
+import { getAssets }   from '@/lib/conditionAssets';
 
 export default {
   name: 'SurveyPage',
@@ -135,6 +150,10 @@ export default {
   },
 
   computed: {
+    image() {
+      const cond = session.getCondition();
+      return cond ? getAssets(cond).initialConsultation : '';
+    },
     questions() {
       return this.$tm('survey.questions').map(q => ({
         text:     this.$rt(q.text),
@@ -242,21 +261,46 @@ export default {
   padding: 40px;
 }
 
+.survey-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
 .intro-section {
   margin-bottom: 32px;
-  text-align: center;
+  text-align: left;
 }
 
-.intro-section h2 {
+.intro-h2 {
   font-size: 1.4rem;
-  font-weight: 700;
+  font-weight: 500;
   color: #333;
-  margin-bottom: 12px;
+  margin: 0 0 16px;
+  line-height: 1.4;
 }
 
-.intro-section p {
-  color: #666;
-  line-height: 1.6;
+.intro-lead {
+  color: #555;
+  line-height: 1.75;
+  margin: 0 0 20px;
+}
+
+.intro-important {
+  color: #555;
+  line-height: 1.75;
+}
+
+.intro-important p {
+  margin: 0 0 4px;
+}
+
+.intro-important :deep(strong) {
+  font-weight: 700;
+  color: #222;
 }
 
 .survey-section {

@@ -7,7 +7,6 @@
         class="hero-image"
         data-track="severity-image"
       />
-      <p class="body" data-track="severity-woeo-framing">{{ $t('severity.woEO.framing') }}</p>
 
       <h2 class="section-h2" data-track="efficacy-woeo-heading">
         {{ $t('severity.woEO.heading') }}
@@ -15,7 +14,7 @@
       <p class="body">{{ $t('severity.woEO.intro') }}</p>
       <ul class="tool-list" data-track="efficacy-woeo-tools">
         <li v-for="(t, i) in tools" :key="i">
-          <strong>{{ t.label }}：</strong>{{ t.body }}
+          {{ t.label }}：{{ t.body }}
         </li>
       </ul>
       <p class="body">{{ $t('severity.woEO.outro') }}</p>

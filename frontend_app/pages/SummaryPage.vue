@@ -56,6 +56,20 @@
             </tbody>
           </table>
 
+          <section class="suggestions-section" data-track="summary-suggestions">
+            <h2 class="suggestions-title">{{ $t('summary.suggestions.title') }}</h2>
+            <p class="suggestions-intro">{{ $t('summary.suggestions.intro') }}</p>
+            <div
+              v-for="(s, i) in suggestionItems"
+              :key="'sug-' + i"
+              class="suggestion-item"
+              :data-track="'suggestion-' + i"
+            >
+              <h3 class="suggestion-range">{{ s.range }}</h3>
+              <p class="suggestion-body">{{ s.body }}</p>
+            </div>
+          </section>
+
           <section class="post-intro" data-track="postsurvey-intro">
             <h2>{{ $t('summary.postIntro.h2') }}</h2>
             <p>{{ $t('summary.postIntro.p') }}</p>
@@ -182,6 +196,12 @@ export default {
         text:     this.$rt(q.text),
         minLabel: this.$rt(q.minLabel),
         maxLabel: this.$rt(q.maxLabel),
+      }));
+    },
+    suggestionItems() {
+      return this.$tm('summary.suggestions.items').map(s => ({
+        range: this.$rt(s.range),
+        body:  this.$rt(s.body),
       }));
     },
     totalScore() {
@@ -487,6 +507,49 @@ export default {
   background: linear-gradient(90deg, #6c63ff, #8a83ff);
   border-radius: 999px;
   transition: width 0.3s ease;
+}
+
+.suggestions-section {
+  margin: 32px 0 20px;
+  padding-top: 24px;
+  border-top: 2px solid #eee;
+}
+
+.suggestions-title {
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: #555;
+  margin: 0 0 14px;
+}
+
+.suggestions-intro {
+  color: #777;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin: 0 0 12px;
+}
+
+.suggestion-item {
+  padding: 16px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.suggestion-range {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #555;
+  margin: 0 0 10px;
+}
+
+.suggestion-body {
+  color: #777;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin: 0;
 }
 
 .post-intro {
